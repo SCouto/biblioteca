@@ -101,6 +101,9 @@
   body.desk #sheet { align-items:center; }
   body.desk #sheetBody { border-radius:20px; }
   .click { cursor:pointer; }
+  .po.lent { opacity:.55; cursor:default; }
+  .chosen { display:flex; align-items:center; gap:10px; padding:10px 10px 10px 14px; border-radius:12px; background:var(--chip); border:1px solid var(--accent); }
+  .chosen .x { flex:none; width:40px; height:40px; border-radius:50%; border:0; background:var(--late-bg); color:var(--late); font-size:18px; font-weight:700; cursor:pointer; }
   .banner { display:flex; align-items:center; gap:12px; margin:4px 0 10px; padding:10px 12px; border-radius:12px; font-size:14px; background:var(--loan-bg); color:var(--loan); }
   .banner span { flex:1; } .banner .btn { height:36px; font-size:14px; flex:none; }
   .banner.good { background:var(--ok-bg); color:var(--ok); }
@@ -253,9 +256,7 @@ function loanSheet(bookId) {
   const people = [...new Set(db.loans.map(l => l.who).filter(Boolean))];
   openSheet(`<h2>Nuevo préstamo</h2>
     <form id="lf">
-      <div class="f"><label>Libro * <span id="pickSel"></span></label>
-        <input id="lSearchBook" type="search" placeholder="Buscar por título o autor…" autocomplete="off" autofocus>
-        <div id="pick" class="pick"></div></div>
+      <div class="f"><label>Libro *</label><div id="bookBox"></div></div>
       <div class="f"><label>Prestado a *</label><input id="lWho" required list="people" autocomplete="off"><datalist id="people">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>
       <div class="two">
         <div class="f"><label>Fecha de préstamo</label><input id="lDate" type="date" required value="${today()}"></div>
@@ -266,20 +267,37 @@ function loanSheet(bookId) {
   let sel = bookId || (avail.length === 1 ? avail[0].id : '');
   const drawPick = () => {
     const q = norm($('lSearchBook').value);
-    const all = q ? avail.filter(b => norm(b.title + ' ' + b.author + ' ' + b.note).includes(q)) : [];
-    const hits = all.slice(0, 6);
-    if (sel && !q) hits.push(bookById(sel));      // sin búsqueda: solo el libro ya elegido
-    const row = b => `<div class="po ${b.id === sel ? 'on' : ''}" data-id="${b.id}">
-        <div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>`;
-    $('pick').innerHTML = !q && !sel ? `<div class="sub" style="padding:12px">Escribe para buscar entre ${avail.length} libros disponibles.</div>`
-      : hits.length ? hits.map(row).join('') + (all.length > 6 ? `<div class="sub" style="padding:10px 12px">y ${all.length - 6} más… sigue escribiendo</div>` : '')
-      : '<div class="sub" style="padding:12px">Ningún libro disponible coincide.</div>';
-    const s = bookById(sel);
-    $('pickSel').textContent = s ? '· elegido: ' + s.title : '';
+    $('pick').classList.toggle('hidden', !q);
+    if (!q) { $('pick').innerHTML = ''; return; }
+    const tk = q.split(/\s+/);
+    const score = b => {   // cuanto más baja, más se parece
+      const t = norm(b.title);
+      return (t.startsWith(q) ? 0 : t.includes(q) ? 1 : tk.every(w => t.includes(w)) ? 2 : 3) + (activeLoan(b.id) ? 0.5 : 0);
+    };
+    const all = db.books.filter(b => { const h = norm(b.title + ' ' + b.author + ' ' + b.note); return tk.every(w => h.includes(w)); })
+      .sort((a, b) => score(a) - score(b) || a.title.localeCompare(b.title));
+    $('pick').innerHTML = all.length ? all.slice(0, 6).map(b => {
+        const out = activeLoan(b.id);   // prestado: sale igual pero no se puede elegir
+        return `<div class="po ${out ? 'lent' : ''}" ${out ? '' : `data-id="${b.id}"`}><div class="row"><div class="grow"><div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>${out ? '<span class="badge b-loaned">PRESTADO</span>' : ''}</div></div>`;
+      }).join('') + (all.length > 6 ? `<div class="sub" style="padding:10px 12px">y ${all.length - 6} más… sigue escribiendo</div>` : '')
+      : '<div class="sub" style="padding:12px">Ningún libro coincide.</div>';
   };
-  $('lSearchBook').oninput = drawPick;
-  $('pick').onclick = e => { const o = e.target.closest('.po'); if (o) { sel = o.dataset.id; drawPick(); } };
-  drawPick();
+  const drawBox = (focus) => {
+    const b = sel && bookById(sel);
+    if (b) {   // libro ya elegido: solo su tarjeta y una X roja para quitarlo
+      $('bookBox').innerHTML = `<div class="chosen"><div class="grow"><div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>
+        <button type="button" class="x" id="unpick" aria-label="Quitar este libro" title="Quitar este libro">✕</button></div>`;
+      $('unpick').onclick = () => { sel = ''; drawBox(true); };
+      if (focus) $('lWho').focus();
+    } else {
+      $('bookBox').innerHTML = `<input id="lSearchBook" type="search" placeholder="Buscar por título o autor…" autocomplete="off"><div id="pick" class="pick"></div>`;
+      $('lSearchBook').oninput = drawPick;
+      $('pick').onclick = e => { const o = e.target.closest('.po'); if (o) { sel = o.dataset.id; drawBox(true); } };
+      drawPick(); if (focus) $('lSearchBook').focus();
+    }
+  };
+  drawBox(false);
+  if (!sel) $('lSearchBook').focus();
   $('lDate').onchange = () => { if ($('lDate').value) $('lDue').value = addDays($('lDate').value, 14); };
   $('lf').onsubmit = e => {
     e.preventDefault();
@@ -510,7 +528,7 @@ async function reconnect() {
   try {
     const h = await idbGet();
     if (await h.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
-    await loadFromHandle(h); needReconnect = false; renderBanner(); dataSheet();
+    await loadFromHandle(h); needReconnect = false; renderBanner(); dlgAlert('💾 Archivo reconectado: ' + h.name + '. Los cambios se guardan en él automáticamente.');
   } catch (e) { fstat('Error al reconectar: ' + e.message, true); }
 }
 async function initFile() {
