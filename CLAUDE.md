@@ -1,4 +1,4 @@
-# CLAUDE.md — Mi Biblioteca (`web/library`)
+# CLAUDE.md — Luceroteka (`web/library`)
 
 Personal library app: books + loans. **One self-contained HTML file** (`library.html`) that the user opens by double-click on a PC or phone. No build, no dependencies, no network, no server. UI is in **Spanish**. The root `CLAUDE.md` applies (Android/iOS rules there do not; this is a web-only project outside `android/` and `ios/`).
 
@@ -18,8 +18,9 @@ Personal library app: books + loans. **One self-contained HTML file** (`library.
 
 ## Storage
 1. `localStorage` key `library.v1` (always; per browser + file location).
-2. Optional **File System Access API** (Chrome/Edge desktop only): "Nuevo/Abrir archivo de datos" links a JSON file, handle kept in IndexedDB (`library-fs`); every `save()` writes to it (debounced 250 ms). After a restart the browser may need a click on "Reconectar archivo" (permission rule). Not available in Firefox/Safari/phone viewers.
-3. Manual JSON backup/restore and CSV export/import in the **⚙ Datos** sheet.
+2. Optional **File System Access API** (Chrome/Edge desktop only): "Nuevo/Abrir archivo de datos" links a **CSV** file (same format as "Exportar todo"), handle kept in IndexedDB (`library-fs`); every `save()` rewrites it (debounced 250 ms, `writeFile`). On startup `loadFromHandle` **merges** the file into the browser data (`importText`, nothing is lost) and rewrites the file with the result. After a browser restart the permission may need one click: a banner offers "Reconectar". Not available in Firefox/Safari/phone viewers; there a banner nags "Última copia hace N días" (>=7) with an "Exportar todo" button (`library.lastBackup`).
+3. Manual CSV export ("Exportar todo") / import in the **⚙ Datos** sheet. There is no JSON backup anymore.
+4. Duplicated books are allowed (several copies of the same title); books show a "duplicado" tag when title+author repeat. The CSV has an `ID` column (book id) so copies survive the round trip; without IDs (hand-written Excel) same-title rows become separate copies.
 
 CSV: export has a `sep=,` first line + BOM so Excel opens it in any locale. Import (`importCSV`) auto-detects `,` `;` or tab, matches headers through `ALIASES` (English + Spanish, accent-insensitive via `norm`), accepts `YYYY-MM-DD` or day-first `DD/MM/YYYY`, creates missing books by title, and treats a file with a "who/Prestado a" column as loans. Add aliases there if the user's real Excel headers differ (we have not seen their sheet yet).
 
