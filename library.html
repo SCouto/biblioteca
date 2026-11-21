@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta id="vp" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mi Biblioteca</title>
+<style>
+  :root {
+    --bg:#f4f4f1; --card:#fff; --ink:#1d1d1f; --muted:#6e6e73; --line:#e3e3df; --accent:#2f5d8a; --on-accent:#fff;
+    --ok:#1e7e34; --ok-bg:#e3f4e7; --loan:#a35c00; --loan-bg:#fdf0da; --late:#c62828; --late-bg:#fde7e7; --chip:#e9e9e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141416; --card:#202024; --ink:#f2f2f4; --muted:#9a9aa2; --line:#33333a; --accent:#6aa3da; --on-accent:#0b1b2b;
+      --ok:#7bd88f; --ok-bg:#16301d; --loan:#ffc069; --loan-bg:#3a2a0e; --late:#ff8a80; --late-bg:#3d1a1a; --chip:#2c2c32; }
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:96px; }
+  .wrap { max-width:720px; margin:0 auto; padding:0 14px; }
+
+  header { position:sticky; top:0; z-index:5; background:var(--bg); padding:14px 0 10px; }
+  .top { display:flex; align-items:center; gap:10px; }
+  .top h1 { font-size:20px; margin:0; flex:1; white-space:nowrap; }
+  .icon { padding:0 12px; }
+  .icon { background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:12px; height:44px; padding:0 14px; font-size:15px; cursor:pointer; }
+  .tabs { display:flex; background:var(--chip); border-radius:12px; padding:4px; margin-top:12px; }
+  .tabs button { flex:1; border:0; background:none; color:var(--muted); height:40px; border-radius:9px; font-size:16px; font-weight:600; cursor:pointer; }
+  .tabs button.on { background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.15); }
+
+  input, select { width:100%; height:48px; padding:0 12px; font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:12px; }
+  input:focus, select:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .search { margin:6px 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:10px; }
+  .chip { flex:none; border:0; background:var(--chip); color:var(--ink); padding:9px 14px; border-radius:20px; font-size:14px; cursor:pointer; }
+  .chip.on { background:var(--accent); color:var(--on-accent); font-weight:600; }
+
+  .item { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px; }
+  .row { display:flex; gap:10px; align-items:flex-start; }
+  .grow { flex:1; min-width:0; }
+  .t { font-weight:650; font-size:17px; overflow-wrap:anywhere; }
+  .sub { color:var(--muted); font-size:14px; margin-top:2px; overflow-wrap:anywhere; }
+  .badge { flex:none; font-size:13px; font-weight:650; padding:4px 11px; border-radius:20px; white-space:nowrap; }
+  .b-loaned { color:var(--loan); background:var(--loan-bg); }
+  .b-late { color:var(--late); background:var(--late-bg); }
+  .b-returned, .b-avail { color:var(--ok); background:var(--ok-bg); }
+  .dates { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; font-size:15px; }
+  .dates small { display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .warn { color:var(--late); font-size:14px; margin-top:8px; font-weight:600; }
+  .acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .btn { height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line); background:none; color:var(--ink); font:inherit; font-size:15px; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:650; }
+  .btn.danger { color:var(--late); }
+  .btn.block { width:100%; }
+  .empty { text-align:center; color:var(--muted); padding:40px 10px; }
+
+  .fab { position:fixed; right:18px; bottom:calc(18px + env(safe-area-inset-bottom)); width:60px; height:60px; border-radius:30px; border:0;
+         background:var(--accent); color:var(--on-accent); font-size:32px; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.35); cursor:pointer; z-index:6; }
+
+  #sheet { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; z-index:20; }
+  #sheet.open { display:flex; }
+  #sheetBody { background:var(--card); width:100%; max-width:560px; max-height:92vh; overflow:auto; border-radius:20px 20px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); }
+  @media (min-width:600px) { #sheet { align-items:center; } #sheetBody { border-radius:20px; } }
+  #sheetBody h2 { margin:0 0 14px; font-size:20px; }
+  .f { margin-bottom:12px; }
+  .f label { display:block; font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .pick { margin-top:8px; border:1px solid var(--line); border-radius:12px; }
+  .po { padding:10px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .po:last-child { border-bottom:0; }
+  .po.on { background:var(--accent); color:var(--on-accent); } .po.on .sub { color:inherit; opacity:.85; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btns { display:flex; gap:10px; margin-top:16px; } .btns .btn { flex:1; }
+  .sec { margin:18px 0 8px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .fstat { font-size:14px; padding:10px 12px; border-radius:12px; background:var(--chip); margin-bottom:10px; }
+  .fstat.err { background:var(--late-bg); color:var(--late); }
+  .stack { display:grid; gap:8px; }
+  /* versión escritorio */
+  body.desk .wrap { max-width:1100px; }
+  body.desk header .top { gap:12px; }
+  body.desk .tabs { max-width:380px; }
+  body.desk .search { max-width:480px; }
+  .tw { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .tbl { width:100%; border-collapse:collapse; font-size:15px; }
+  .tbl th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:12px 12px; border-bottom:1px solid var(--line); background:var(--chip); white-space:nowrap; }
+  .tbl th.sortable { cursor:pointer; user-select:none; } .tbl th.sortable:hover { color:var(--ink); }
+  .tbl td { padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .tbl tr:last-child td { border-bottom:0; }
+  .tbl tbody tr:hover { background:var(--chip); }
+  .tbl td.r { text-align:right; white-space:nowrap; }
+  .tbl .sub { margin:0; }
+  .btn.sm { height:34px; padding:0 12px; font-size:14px; }
+  body.desk .empty { grid-column:1/-1; }
+  body.desk #sheet { align-items:center; }
+  body.desk #sheetBody { border-radius:20px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top"><h1>📚 Mi Biblioteca</h1><button class="icon" id="viewBtn" onclick="toggleView()">🖥 PC</button><button class="icon" onclick="dataSheet()">⚙ Datos</button></div>
+  <div class="tabs">
+    <button id="t-books" class="on" onclick="show('books')">Libros</button>
+    <button id="t-loans" onclick="show('loans')">Préstamos</button>
+  </div>
+</div></header>
+
+<main class="wrap">
+  <section id="books">
+    <input class="search" id="bSearch" type="search" placeholder="Buscar por título o autor…" oninput="renderBooks()">
+    <div id="bookList"></div>
+  </section>
+  <section id="loans" class="hidden">
+    <input class="search" id="lSearch" type="search" placeholder="Buscar por libro o persona…" oninput="renderLoans()">
+    <div class="chips" id="chips"></div>
+    <div id="loanList"></div>
+  </section>
+</main>
+
+<button class="fab" id="fab" onclick="addAction()" aria-label="Añadir">+</button>
+<div id="sheet" onclick="if(event.target===this)closeSheet()"><div id="sheetBody"></div></div>
+<input id="csvIn" type="file" accept=".csv,text/csv" class="hidden" onchange="importCSV(event)">
+
+<script>
+const KEY = 'library.v1';
+const $ = id => document.getElementById(id);
+let db = load(), tab = 'books', lFilter = '';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || { books: [], loans: [] }; }
+  catch { return { books: [], loans: [] }; }
+}
+let saveTimer;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {}
+  clearTimeout(saveTimer); saveTimer = setTimeout(writeFile, 250);
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today = () => ymd(new Date());
+const addDays = (iso, n) => { const d = iso ? new Date(iso + 'T12:00:00') : new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+const fmt = iso => iso ? iso.split('-').reverse().join('/') : '—';
+const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bookById = id => db.books.find(b => b.id === id);
+const LABEL = { loaned: 'Prestado', late: 'Retrasado', returned: 'Devuelto' };
+function status(l) { return l.returned ? 'returned' : (l.due < today() ? 'late' : 'loaned'); }
+const activeLoan = bookId => db.loans.find(l => l.bookId === bookId && !l.returned);
+
+/* ---------- Ventanas propias (el móvil bloquea alert/confirm/prompt) ---------- */
+function openSheet(html) { $('sheetBody').innerHTML = html; $('sheet').classList.add('open'); }
+function closeSheet() { $('sheet').classList.remove('open'); }
+function dlgAlert(msg) {
+  openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn primary" onclick="closeSheet()">Aceptar</button></div>`);
+}
+function dlgConfirm(msg, okText = 'Aceptar') {
+  return new Promise(res => {
+    openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn" id="dNo">Cancelar</button><button class="btn primary" id="dYes">${esc(okText)}</button></div>`);
+    $('dNo').onclick = () => { closeSheet(); res(false); };
+    $('dYes').onclick = () => { closeSheet(); res(true); };
+  });
+}
+
+/* ---------- Navegación ---------- */
+function show(t) {
+  tab = t;
+  for (const x of ['books', 'loans']) { $(x).classList.toggle('hidden', x !== t); $('t-' + x).classList.toggle('on', x === t); }
+  $('fab').setAttribute('aria-label', t === 'books' ? 'Añadir libro' : 'Nuevo préstamo');
+  window.scrollTo(0, 0);
+}
+function addAction() { tab === 'books' ? bookSheet() : loanSheet(); }
+
+/* ---------- Libros ---------- */
+function bookSheet() {
+  openSheet(`<h2>Añadir libro</h2>
+    <form id="bf">
+      <div class="f"><label>Título *</label><input id="bTitle" required autocomplete="off"></div>
+      <div class="f"><label>Autor</label><input id="bAuthor" autocomplete="off"></div>
+      <div class="f"><label>ISBN / Notas</label><input id="bNote" autocomplete="off"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Guardar</button></div>
+    </form>`);
+  $('bf').onsubmit = e => {
+    e.preventDefault();
+    db.books.push({ id: uid(), title: $('bTitle').value.trim(), author: $('bAuthor').value.trim(), note: $('bNote').value.trim() });
+    save(); closeSheet(); render();
+  };
+  setTimeout(() => $('bTitle').focus(), 50);
+}
+async function delBook(id) {
+  if (activeLoan(id)) return dlgAlert('Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.');
+  if (!await dlgConfirm('¿Borrar este libro y su historial de préstamos?', 'Borrar')) return;
+  db.books = db.books.filter(b => b.id !== id);
+  db.loans = db.loans.filter(l => l.bookId !== id);
+  save(); render();
+}
+function renderBooks() {
+  const q = $('bSearch').value.toLowerCase();
+  const list = db.books.filter(b => (b.title + ' ' + b.author + ' ' + b.note).toLowerCase().includes(q))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  if (isDesk()) {
+    const st = b => { const o = activeLoan(b.id); return o ? status(o) : 'avail'; };
+    const val = { title: b => b.title, author: b => b.author, note: b => b.note, state: st, who: b => activeLoan(b.id)?.who, due: b => activeLoan(b.id)?.due };
+    const g = val[SORT.books.k];
+    const rows = [...list].sort((a, b) => SORT.books.d * cmp(g(a), g(b)));
+    $('bookList').innerHTML = rows.length ? `<div class="tw"><table class="tbl"><thead><tr>
+      ${th('books','title','Título')}${th('books','author','Autor')}${th('books','note','ISBN / Notas')}${th('books','state','Estado')}${th('books','who','Prestado a')}${th('books','due','Devolver el')}<th></th></tr></thead><tbody>
+      ${rows.map(b => { const o = activeLoan(b.id), s = o && status(o);
+        return `<tr><td><b>${esc(b.title)}</b></td><td>${esc(b.author)}</td><td>${esc(b.note)}</td>
+          <td><span class="badge ${o ? 'b-' + s : 'b-avail'}">${o ? LABEL[s] : 'Disponible'}</span></td>
+          <td>${o ? esc(o.who) : ''}</td><td>${o ? fmt(o.due) : ''}</td>
+          <td class="r">${o ? `<button class="btn sm" onclick="returnSheet('${o.id}')">Marcar devuelto</button>` : `<button class="btn sm primary" onclick="loanSheet('${b.id}')">Prestar</button>`}
+            <button class="btn sm danger" onclick="delBook('${b.id}')">Borrar</button></td></tr>`; }).join('')}
+      </tbody></table></div>`
+      : `<div class="empty">${db.books.length ? 'Ningún libro coincide.' : 'Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.'}</div>`;
+    return;
+  }
+  $('bookList').innerHTML = list.length ? list.map(b => {
+    const out = activeLoan(b.id), s = out && status(out);
+    const badge = out ? `<span class="badge b-${s}">${s === 'late' ? 'Retrasado' : 'Prestado'}</span>` : `<span class="badge b-avail">Disponible</span>`;
+    return `<div class="item">
+      <div class="row"><div class="grow"><div class="t">${esc(b.title)}</div>
+        <div class="sub">${esc([b.author, b.note].filter(Boolean).join(' · ')) || '&nbsp;'}</div>
+        ${out ? `<div class="sub">con ${esc(out.who)} · devolver el ${fmt(out.due)}</div>` : ''}</div>${badge}</div>
+      <div class="acts">
+        ${out ? `<button class="btn" onclick="returnSheet('${out.id}')">Marcar devuelto</button>` : `<button class="btn primary" onclick="loanSheet('${b.id}')">Prestar</button>`}
+        <button class="btn danger" onclick="delBook('${b.id}')">Borrar</button></div>
+    </div>`;
+  }).join('') : `<div class="empty">${db.books.length ? 'Ningún libro coincide.' : 'Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.'}</div>`;
+}
+
+/* ---------- Préstamos ---------- */
+function loanSheet(bookId) {
+  const avail = db.books.filter(b => !activeLoan(b.id)).sort((a, b) => a.title.localeCompare(b.title));
+  if (!avail.length) return dlgAlert(db.books.length ? 'Todos los libros están prestados.' : 'Primero añade algún libro en la pestaña Libros.');
+  const people = [...new Set(db.loans.map(l => l.who).filter(Boolean))];
+  openSheet(`<h2>Nuevo préstamo</h2>
+    <form id="lf">
+      <div class="f"><label>Libro * <span id="pickSel"></span></label>
+        <input id="lSearchBook" type="search" placeholder="Buscar por título o autor…" autocomplete="off" autofocus>
+        <div id="pick" class="pick"></div></div>
+      <div class="f"><label>Prestado a *</label><input id="lWho" required list="people" autocomplete="off"><datalist id="people">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>
+      <div class="two">
+        <div class="f"><label>Fecha de préstamo</label><input id="lDate" type="date" required value="${today()}"></div>
+        <div class="f"><label>Devolución prevista</label><input id="lDue" type="date" required value="${addDays(null, 14)}"></div>
+      </div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Prestar</button></div>
+    </form>`);
+  let sel = bookId || (avail.length === 1 ? avail[0].id : '');
+  const drawPick = () => {
+    const q = norm($('lSearchBook').value);
+    const all = q ? avail.filter(b => norm(b.title + ' ' + b.author + ' ' + b.note).includes(q)) : [];
+    const hits = all.slice(0, 6);
+    if (sel && !q) hits.push(bookById(sel));      // sin búsqueda: solo el libro ya elegido
+    const row = b => `<div class="po ${b.id === sel ? 'on' : ''}" data-id="${b.id}">
+        <div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>`;
+    $('pick').innerHTML = !q && !sel ? `<div class="sub" style="padding:12px">Escribe para buscar entre ${avail.length} libros disponibles.</div>`
+      : hits.length ? hits.map(row).join('') + (all.length > 6 ? `<div class="sub" style="padding:10px 12px">y ${all.length - 6} más… sigue escribiendo</div>` : '')
+      : '<div class="sub" style="padding:12px">Ningún libro disponible coincide.</div>';
+    const s = bookById(sel);
+    $('pickSel').textContent = s ? '· elegido: ' + s.title : '';
+  };
+  $('lSearchBook').oninput = drawPick;
+  $('pick').onclick = e => { const o = e.target.closest('.po'); if (o) { sel = o.dataset.id; drawPick(); } };
+  drawPick();
+  $('lDate').onchange = () => { if ($('lDate').value) $('lDue').value = addDays($('lDate').value, 14); };
+  $('lf').onsubmit = e => {
+    e.preventDefault();
+    if (!sel) return dlgAlert('Elige un libro de la lista.');
+    if ($('lDue').value < $('lDate').value) return dlgAlert('La devolución prevista no puede ser anterior al préstamo.');
+    db.loans.push({ id: uid(), bookId: sel, who: $('lWho').value.trim(), date: $('lDate').value, due: $('lDue').value, returned: null });
+    save(); closeSheet(); render(); if (tab !== 'loans') show('loans');
+  };
+}
+function returnSheet(id) {
+  const l = db.loans.find(x => x.id === id), b = bookById(l.bookId);
+  openSheet(`<h2>Marcar como devuelto</h2>
+    <p class="sub" style="margin-top:-8px">${esc(b?.title || '')} · prestado a ${esc(l.who)}</p>
+    <form id="rf"><div class="f"><label>Fecha real de devolución</label><input id="rDate" type="date" required value="${today()}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Confirmar</button></div></form>`);
+  $('rf').onsubmit = e => { e.preventDefault(); l.returned = $('rDate').value; save(); closeSheet(); render(); };
+}
+function reopen(id) { db.loans.find(l => l.id === id).returned = null; save(); render(); }
+async function delLoan(id) {
+  if (!await dlgConfirm('¿Borrar este préstamo?', 'Borrar')) return;
+  db.loans = db.loans.filter(l => l.id !== id); save(); render();
+}
+function renderLoans() {
+  const q = $('lSearch').value.toLowerCase();
+  const all = [...db.loans].sort((a, b) => b.date.localeCompare(a.date));
+  const count = s => all.filter(l => !s || status(l) === s).length;
+  $('chips').innerHTML = [['', 'Todos'], ['loaned', 'Prestados'], ['late', 'Retrasados'], ['returned', 'Devueltos']]
+    .map(([k, n]) => `<button class="chip ${lFilter === k ? 'on' : ''}" onclick="lFilter='${k}';renderLoans()">${n} (${count(k)})</button>`).join('');
+  const list = all.filter(l => !lFilter || status(l) === lFilter)
+    .filter(l => ((bookById(l.bookId)?.title || '') + ' ' + l.who).toLowerCase().includes(q));
+  if (isDesk()) {
+    const val = { title: l => bookById(l.bookId)?.title, who: l => l.who, date: l => l.date, due: l => l.due, returned: l => l.returned, state: l => status(l) };
+    const g = val[SORT.loans.k];
+    const rows = [...list].sort((a, b) => SORT.loans.d * cmp(g(a), g(b)));
+    $('loanList').innerHTML = rows.length ? `<div class="tw"><table class="tbl"><thead><tr>
+      ${th('loans','title','Libro')}${th('loans','who','Prestado a')}${th('loans','date','Préstamo')}${th('loans','due','Previsto')}${th('loans','returned','Devuelto')}${th('loans','state','Estado')}<th></th></tr></thead><tbody>
+      ${rows.map(l => { const s = status(l), b = bookById(l.bookId); let n = '';
+        if (s === 'late') { const d = daysBetween(l.due, today()); n = `<div class="sub" style="color:var(--late)">${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
+        if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); n = `<div class="sub">con ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
+        return `<tr><td><b>${esc(b?.title || '(libro borrado)')}</b></td><td>${esc(l.who)}</td><td>${fmt(l.date)}</td><td>${fmt(l.due)}</td><td>${fmt(l.returned)}</td>
+          <td><span class="badge b-${s}">${LABEL[s]}</span>${n}</td>
+          <td class="r">${l.returned ? `<button class="btn sm" onclick="reopen('${l.id}')">Reabrir</button>` : `<button class="btn sm primary" onclick="returnSheet('${l.id}')">Marcar devuelto</button>`}
+            <button class="btn sm danger" onclick="delLoan('${l.id}')">Borrar</button></td></tr>`; }).join('')}
+      </tbody></table></div>`
+      : `<div class="empty">${db.loans.length ? 'Ningún préstamo coincide.' : 'Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.'}</div>`;
+    return;
+  }
+  $('loanList').innerHTML = list.length ? list.map(l => {
+    const s = status(l), b = bookById(l.bookId);
+    let note = '';
+    if (s === 'late') { const d = daysBetween(l.due, today()); note = `<div class="warn">⚠ ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
+    if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); note = `<div class="sub">Devuelto con ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
+    return `<div class="item">
+      <div class="row"><div class="grow"><div class="t">${esc(b?.title || '(libro borrado)')}</div><div class="sub">Prestado a ${esc(l.who)}</div></div>
+        <span class="badge b-${s}">${LABEL[s]}</span></div>
+      <div class="dates"><div><small>Préstamo</small>${fmt(l.date)}</div><div><small>Previsto</small>${fmt(l.due)}</div><div><small>Devuelto</small>${fmt(l.returned)}</div></div>
+      ${note}
+      <div class="acts">
+        ${l.returned ? `<button class="btn" onclick="reopen('${l.id}')">Reabrir</button>` : `<button class="btn primary" onclick="returnSheet('${l.id}')">Marcar devuelto</button>`}
+        <button class="btn danger" onclick="delLoan('${l.id}')">Borrar</button></div>
+    </div>`;
+  }).join('') : `<div class="empty">${db.loans.length ? 'Ningún préstamo coincide.' : 'Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.'}</div>`;
+}
+
+/* ---------- Panel de datos ---------- */
+let fileMsg = '', fileErr = false;
+function fstat(t, err) { fileMsg = t; fileErr = !!err; const e = $('fileStatus'); if (e) { e.textContent = t; e.classList.toggle('err', !!err); } }
+function dataSheet() {
+  openSheet(`<h2>Datos</h2>
+    <div id="fileStatus" class="fstat ${fileErr ? 'err' : ''}">${esc(fileMsg)}</div>
+    ${FS ? `<div class="stack">
+      <button class="btn block" onclick="newFile()">Nuevo archivo de datos</button>
+      <button class="btn block" onclick="openFile()">Abrir archivo de datos</button>
+      <button class="btn block ${needReconnect ? '' : 'hidden'}" onclick="reconnect()">Reconectar archivo</button></div>` : ''}
+    <div class="sec">Copia de seguridad (CSV, se abre en Excel)</div>
+    <div class="stack">
+      <button class="btn block" onclick="exportCSV()">Exportar todo</button>
+      <button class="btn block" onclick="$('csvIn').click()">Importar CSV</button></div>
+    <div class="sec">Datos de ejemplo (para probar)</div>
+    <div class="stack">
+      <button class="btn block" onclick="loadDemo()">Cargar libros y préstamos de ejemplo</button>
+      <button class="btn block danger" onclick="removeDemo()">Quitar los datos de ejemplo</button></div>
+    <div class="btns"><button class="btn primary" onclick="closeSheet()">Cerrar</button></div>`);
+}
+/* ---------- CSV (se abre en Excel) ---------- */
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const ALIASES = {
+  title: ['title','titulo','libro','book','nombre','name'],
+  author: ['author','autor'],
+  note: ['notes','note','notas','nota','isbn','isbn / notes','isbn / notas','observaciones'],
+  who: ['borrower','prestado a','persona','who','quien','to','prestatario','usuario'],
+  date: ['loan date','loaned','date','fecha','fecha prestamo','fecha de prestamo','prestamo'],
+  due: ['expected return','due','due date','return due','fecha prevista','devolucion prevista','fecha devolucion prevista','fecha limite'],
+  returned: ['returned date','actual return','returned on','return date','fecha devolucion','devuelto','fecha de devolucion','devolucion'],
+  status: ['status','estado']
+};
+function colMap(header) {
+  const h = header.map(norm), m = {};
+  for (const [k, names] of Object.entries(ALIASES)) { const i = h.findIndex(x => names.includes(x)); if (i >= 0) m[k] = i; }
+  return m;
+}
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  let lines = text.split(/\r?\n/);
+  if (/^sep=/i.test(lines[0])) lines.shift();
+  text = lines.join('\n');
+  const first = text.split('\n')[0];
+  const delim = [';', ',', '\t'].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function toISO(v) {   // acepta AAAA-MM-DD o DD/MM/AAAA (día primero)
+  v = String(v || '').trim(); if (!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  return '';
+}
+const csvCell = v => /[",;\n\r]/.test(v ?? '') ? '"' + String(v).replace(/"/g, '""') + '"' : String(v ?? '');
+function exportCSV() {   // un solo CSV: una fila por préstamo; libros sin préstamos, una fila con los datos del préstamo vacíos
+  const rows = [['Título','Autor','Notas','Prestado a','Fecha préstamo','Devolución prevista','Fecha devolución','Estado']];
+  for (const b of db.books) {
+    const ls = db.loans.filter(l => l.bookId === b.id);
+    if (!ls.length) rows.push([b.title, b.author, b.note, '', '', '', '', '']);
+    for (const l of ls) rows.push([b.title, b.author, b.note, l.who, l.date, l.due, l.returned || '', LABEL[status(l)]]);
+  }
+  for (const l of db.loans) if (!bookById(l.bookId)) rows.push(['(libro borrado)', '', '', l.who, l.date, l.due, l.returned || '', LABEL[status(l)]]);
+  const text = 'sep=,\r\n' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' }));
+  a.download = `biblioteca-${today()}.csv`; a.click();
+}
+function importCSV(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const rows = parseCSV(r.result);
+    if (rows.length < 2) return dlgAlert('El CSV está vacío.');
+    const m = colMap(rows[0]);
+    if (m.title === undefined) return dlgAlert('No se encontró una columna Título/Libro en la primera fila.');
+    const find = t => db.books.find(b => norm(b.title) === norm(t));
+    let nb = 0, nl = 0;
+    const cell = (row, k) => (m[k] !== undefined ? (row[m[k]] || '').trim() : '');
+    for (const row of rows.slice(1)) {
+      const title = cell(row, 'title'); if (!title) continue;
+      let b = find(title);
+      if (!b) { b = { id: uid(), title, author: cell(row, 'author'), note: cell(row, 'note') }; db.books.push(b); nb++; }
+      if (!cell(row, 'who')) continue;
+      const date = toISO(cell(row, 'date')) || today();
+      const due = toISO(cell(row, 'due')) || date;
+      let ret = toISO(cell(row, 'returned'));
+      if (!ret && /^(returned|devuelto)/.test(norm(cell(row, 'status')))) ret = today();
+      if (db.loans.some(l => l.bookId === b.id && l.who === cell(row, 'who') && l.date === date)) continue;
+      if (!ret && activeLoan(b.id)) continue;
+      db.loans.push({ id: uid(), bookId: b.id, who: cell(row, 'who'), date, due, returned: ret || null }); nl++;
+    }
+    save(); render();
+    dlgAlert(`Importado: ${nb} libros nuevos, ${nl} préstamos.`);
+  };
+  r.readAsText(file); e.target.value = '';
+}
+
+/* ---------- Archivo de datos en disco (Chrome / Edge, ordenador) ---------- */
+let fileHandle = null, needReconnect = false;
+const FS = 'showSaveFilePicker' in window;
+const idb = () => new Promise((res, rej) => { const q = indexedDB.open('library-fs', 1); q.onupgradeneeded = () => q.result.createObjectStore('h'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+async function idbSet(v) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('h', 'readwrite'); t.objectStore('h').put(v, 'handle'); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function idbGet() { const d = await idb(); return new Promise((res, rej) => { const q = d.transaction('h').objectStore('h').get('handle'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+const FTYPES = [{ description: 'Datos de la biblioteca (JSON)', accept: { 'application/json': ['.json'] } }];
+
+async function writeFile() {
+  if (!fileHandle) return;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write(JSON.stringify(db, null, 2)); await w.close();
+    fstat('💾 ' + fileHandle.name + ' — guardado');
+  } catch (e) { fstat('Error al guardar en el archivo: ' + e.message, true); }
+}
+async function loadFromHandle(h) {
+  const d = JSON.parse(await (await h.getFile()).text());
+  if (!Array.isArray(d.books) || !Array.isArray(d.loans)) throw new Error('No es un archivo de biblioteca');
+  db = d; try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {}
+  render();
+}
+async function newFile() {
+  try { fileHandle = await showSaveFilePicker({ suggestedName: 'biblioteca.json', types: FTYPES }); await idbSet(fileHandle); await writeFile(); }
+  catch (e) { if (e.name !== 'AbortError') fstat(e.message, true); }
+}
+async function openFile() {
+  try {
+    const [h] = await showOpenFilePicker({ types: FTYPES });
+    await h.requestPermission({ mode: 'readwrite' });
+    await loadFromHandle(h); fileHandle = h; await idbSet(h); fstat('💾 ' + h.name + ' — cargado');
+  } catch (e) { if (e.name !== 'AbortError') fstat('No se pudo abrir el archivo: ' + e.message, true); }
+}
+async function reconnect() {
+  try {
+    const h = await idbGet();
+    if (await h.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
+    await loadFromHandle(h); fileHandle = h; needReconnect = false; fstat('💾 ' + h.name + ' — cargado'); dataSheet();
+  } catch (e) { fstat('Error al reconectar: ' + e.message, true); }
+}
+async function initFile() {
+  if (!FS) { fstat('Este navegador guarda los datos en el propio navegador. Usa «Descargar copia» de vez en cuando.'); return; }
+  fstat('Sin archivo vinculado (los datos se guardan en este navegador).');
+  try {
+    const h = await idbGet(); if (!h) return;
+    if (await h.queryPermission({ mode: 'readwrite' }) === 'granted') { await loadFromHandle(h); fileHandle = h; fstat('💾 ' + h.name + ' — cargado'); }
+    else { needReconnect = true; fstat('Archivo vinculado: ' + h.name + ' — pulsa «Reconectar archivo».'); }
+  } catch {}
+}
+
+/* ---------- Datos de ejemplo ---------- */
+const DEMO_BOOKS = [
+ ['Don Quijote de la Mancha','Miguel de Cervantes'],['Cien años de soledad','Gabriel García Márquez'],['El Capital, Tomo I','Karl Marx'],
+ ['El Don apacible','Mijaíl Sholojov'],['Rayuela','Julio Cortázar'],['La sombra del viento','Carlos Ruiz Zafón'],
+ ['Manifiesto del Partido Comunista','Karl Marx y Friedrich Engels'],['El Estado y la revolución','Vladimir Lenin'],['Los renglones torcidos de Dios','Torcuato Luca de Tena'],
+ ['Pedro Páramo','Juan Rulfo'],['La familia de Pascual Duarte','Camilo José Cela'],['Los miserables','Victor Hugo'],
+ ['Crimen y castigo','Fiódor Dostoievski'],['Guerra y paz','Lev Tolstói'],['Madame Bovary','Gustave Flaubert'],
+ ['El imperialismo, fase superior del capitalismo','Vladimir Lenin'],['Así se templó el acero','Nikolái Ostrovski'],['La madre','Maksim Gorki'],
+ ['Fortunata y Jacinta','Benito Pérez Galdós'],['La Regenta','Leopoldo Alas «Clarín»'],['Nada','Carmen Laforet'],
+ ['Ficciones','Jorge Luis Borges'],['El Aleph','Jorge Luis Borges'],['La ciudad y los perros','Mario Vargas Llosa'],
+ ['Las venas abiertas de América Latina','Eduardo Galeano'],['El origen de la familia, la propiedad privada y el Estado','Friedrich Engels'],['La situación de la clase obrera en Inglaterra','Friedrich Engels'],
+ ['Historia de dos ciudades','Charles Dickens'],['Oliver Twist','Charles Dickens'],['Germinal','Émile Zola'],
+ ['1984','George Orwell'],['Rebelión en la granja','George Orwell'],['Homenaje a Cataluña','George Orwell'],
+ ['Fahrenheit 451','Ray Bradbury'],['Un mundo feliz','Aldous Huxley'],['El extranjero','Albert Camus'],
+ ['La peste','Albert Camus'],['El túnel','Ernesto Sabato'],['Pedro Páramo y El llano en llamas','Juan Rulfo'],
+ ['Bodas de sangre','Federico García Lorca'],['Romancero gitano','Federico García Lorca'],['Campos de Castilla','Antonio Machado'],
+ ['Platero y yo','Juan Ramón Jiménez'],['La casa de los espíritus','Isabel Allende'],['Como agua para chocolate','Laura Esquivel'],
+ ['El amor en los tiempos del cólera','Gabriel García Márquez'],['Crónica de una muerte anunciada','Gabriel García Márquez'],['El coronel no tiene quien le escriba','Gabriel García Márquez'],
+ ['Historia de la revolución rusa','León Trotsky'],['La revolución traicionada','León Trotsky'],['Cuadernos de la cárcel','Antonio Gramsci'],
+ ['Los condenados de la tierra','Frantz Fanon'],['Los orígenes del totalitarismo','Hannah Arendt'],['Historia social de la literatura','Arnold Hauser'],
+ ['El Capital, Tomo II','Karl Marx'],['El Capital, Tomo III','Karl Marx'],['Contribución a la crítica de la economía política','Karl Marx'],
+ ['La ideología alemana','Karl Marx y Friedrich Engels'],['Dialéctica de la naturaleza','Friedrich Engels'],['¿Qué hacer?','Vladimir Lenin'],
+ ['La Celestina','Fernando de Rojas'],['El lazarillo de Tormes','Anónimo'],['La vida es sueño','Pedro Calderón de la Barca'],
+ ['Don Juan Tenorio','José Zorrilla'],['Niebla','Miguel de Unamuno'],['San Manuel Bueno, mártir','Miguel de Unamuno'],
+ ['Tiempo de silencio','Luis Martín-Santos'],['Los santos inocentes','Miguel Delibes'],['El camino','Miguel Delibes'],
+ ['Soldados de Salamina','Javier Cercas'],['Patria','Fernando Aramburu'],['Los girasoles ciegos','Alberto Méndez']
+];
+// [índice de libro, persona, inicio (días desde hoy), duración, devuelto a los N días | null]
+const DEMO_LOANS = [
+ [0,'Paco',-45,14,null],[1,'Ana',-30,14,null],[2,'Luis',-20,7,null],[3,'María',-60,30,null],[4,'Carlos',-12,7,null],
+ [5,'Lucía',-3,14,null],[6,'Pedro',-7,21,null],[7,'Ana',-1,14,null],[8,'Sofía',-10,28,null],[9,'Paco',0,14,null],
+ [10,'Luis',-80,14,10],[11,'María',-70,21,18],[12,'Carlos',-90,30,25],[13,'Lucía',-50,14,14],[14,'Pedro',-100,14,9],[15,'Ana',-40,14,13],
+ [16,'Sofía',-75,14,20],[17,'Paco',-65,14,30],[18,'Luis',-55,7,12],[10,'Ana',-20,10,8]
+];
+function loadDemo() {
+  const have = new Set(db.books.map(b => norm(b.title)));
+  const byIdx = {};
+  DEMO_BOOKS.forEach(([title, author], i) => {
+    const ex = db.books.find(b => norm(b.title) === norm(title));
+    if (ex) { byIdx[i] = ex; return; }
+    const b = { id: uid(), title, author, note: i % 6 === 0 ? 'ISBN 978-84-' + (1000 + i * 7) : '', demo: true };
+    db.books.push(b); byIdx[i] = b;
+  });
+  let nl = 0;
+  for (const [i, who, start, len, ret] of DEMO_LOANS) {
+    const b = byIdx[i]; if (!b) continue;
+    db.loans.push({ id: uid(), bookId: b.id, who, date: addDays(null, start), due: addDays(null, start + len), returned: ret == null ? null : addDays(null, start + ret), demo: true }); nl++;
+  }
+  save(); render();
+  dlgAlert(`Cargados ${DEMO_BOOKS.length} libros y ${nl} préstamos de ejemplo.`);
+}
+async function removeDemo() {
+  if (!await dlgConfirm('¿Quitar los libros y préstamos de ejemplo? Tus datos reales no se tocan.', 'Quitar')) return;
+  const ids = new Set(db.books.filter(b => b.demo).map(b => b.id));
+  db.books = db.books.filter(b => !b.demo);
+  db.loans = db.loans.filter(l => !l.demo && !ids.has(l.bookId));
+  save(); render(); dlgAlert('Datos de ejemplo eliminados.');
+}
+
+const isDesk = () => document.body.classList.contains('desk');
+const SORT = { books: { k: 'title', d: 1 }, loans: { k: 'date', d: -1 } };
+const cmp = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'es', { numeric: true });
+const th = (t, k, label) => `<th class="sortable" onclick="sortBy('${t}','${k}')">${label}${SORT[t].k === k ? (SORT[t].d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+function sortBy(t, k) { const s = SORT[t]; s.d = s.k === k ? -s.d : 1; s.k = k; render(); }
+function applyView(desk) {
+  document.body.classList.toggle('desk', desk);
+  $('viewBtn').textContent = desk ? '📱 Móvil' : '🖥 PC';
+  // en un teléfono, la versión PC usa un ancho de página de 1100 px (como un ordenador)
+  $('vp').setAttribute('content', desk ? 'width=1100' : 'width=device-width, initial-scale=1, viewport-fit=cover');
+}
+function toggleView() {
+  const d = !document.body.classList.contains('desk');
+  applyView(d); render(); try { localStorage.setItem('library.view', d ? 'desk' : 'mobile'); } catch {}
+}
+function render() {
+  renderBooks(); renderLoans();
+  $('t-books').textContent = `Libros (${db.books.length})`;
+  const out = db.loans.filter(l => !l.returned).length;
+  $('t-loans').textContent = `Préstamos${out ? ` (${out})` : ''}`;
+}
+let v = null; try { v = localStorage.getItem('library.view'); } catch {}
+applyView(v ? v === 'desk' : screen.width >= 1000);
+render(); initFile();
+</script>
+</body>
+</html>
