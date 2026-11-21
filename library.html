@@ -160,7 +160,71 @@ const fmt = iso => iso ? iso.split('-').reverse().join('/') : '—';
 const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const bookById = id => db.books.find(b => b.id === id);
-const LABEL = { loaned: 'Prestado', late: 'Retrasado', returned: 'Devuelto' };
+/* ---------- Idioma (español / galego): el texto en español es la clave ---------- */
+let LANG = 'es';
+const GL = {
+  "Buscar por título o autor…": "Buscar por título ou autor…",
+  "Buscar por libro, autor o persona…": "Buscar por libro, autor ou persoa…",
+  "Añadir libro": "Engadir libro",
+  "Nuevo préstamo": "Novo préstamo",
+  "Retrasado": "Atrasado",
+  "Devuelto": "Devolto",
+  "Disponible": "Dispoñible",
+  "Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.": "Este libro está prestado agora mesmo. Márcao como devolto antes de borralo.",
+  "¿Borrar este libro y su historial de préstamos?": "Queres borrar este libro e o seu historial de préstamos?",
+  "Hay más de un ejemplar con este título y autor": "Hai máis dun exemplar con este título e autor",
+  "Devolver el": "Devolver o",
+  "Marcar devuelto": "Marcar devolto",
+  "Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.": "Aínda non hai libros.<br>Preme <b>+</b> para engadir o primeiro.",
+  "con {who} · devolver el {date}": "con {who} · devolver o {date}",
+  "Todos los libros están prestados.": "Todos os libros están prestados.",
+  "Primero añade algún libro en la pestaña Libros.": "Primeiro engade algún libro na lapela Libros.",
+  "Fecha de préstamo": "Data do préstamo",
+  "y {n} más… sigue escribiendo": "e {n} máis… segue escribindo",
+  "Elige un libro de la lista.": "Elixe un libro da lista.",
+  "La devolución prevista no puede ser anterior al préstamo.": "A devolución prevista non pode ser anterior ao préstamo.",
+  "Marcar como devuelto": "Marcar como devolto",
+  "Fecha real de devolución": "Data real de devolución",
+  "¿Borrar este préstamo?": "Queres borrar este préstamo?",
+  "Retrasados": "Atrasados",
+  "Devueltos": "Devoltos",
+  "con {n} {u} de retraso": "con {n} {u} de atraso",
+  "⚠ {n} {u} de retraso": "⚠ {n} {u} de atraso",
+  "{n} {u} de retraso": "{n} {u} de atraso",
+  "Devuelto con {n} {u} de retraso": "Devolto con {n} {u} de atraso",
+  "Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.": "Aínda non hai préstamos.<br>Preme <b>+</b> para rexistrar o primeiro.",
+  "Nuevo archivo de datos": "Novo ficheiro de datos",
+  "Abrir archivo de datos": "Abrir ficheiro de datos",
+  "Reconectar archivo": "Reconectar ficheiro",
+  "Copia de seguridad (CSV, se abre en Excel)": "Copia de seguridade (CSV, ábrese en Excel)",
+  "Datos de ejemplo (para probar)": "Datos de exemplo (para probar)",
+  "Cargar libros y préstamos de ejemplo": "Cargar libros e préstamos de exemplo",
+  "Quitar los datos de ejemplo": "Quitar os datos de exemplo",
+  "Cerrar": "Pechar",
+  "💾 El archivo de datos está desconectado: los cambios no se guardan en él.": "💾 O ficheiro de datos está desconectado: os cambios non se gardan nel.",
+  "Aún no has hecho ninguna copia.": "Aínda non fixeches ningunha copia.",
+  "Última copia hace {n} días.": "Última copia hai {n} días.",
+  "🌙 Oscuro": "🌙 Escuro",
+  "📱 Móvil": "📱 Móbil",
+  "El CSV está vacío.": "O CSV está baleiro.",
+  "No se encontró una columna Título/Libro en la primera fila.": "Non se atopou unha columna Título/Libro na primeira fila.",
+  "Importado: {nb} libros nuevos, {nl} préstamos.": "Importado: {nb} libros novos, {nl} préstamos.",
+  "Cargados {n} libros y {nl} préstamos de ejemplo.": "Cargados {n} libros e {nl} préstamos de exemplo.",
+  "¿Quitar los libros y préstamos de ejemplo? Tus datos reales no se tocan.": "Queres quitar os libros e préstamos de exemplo? Os teus datos reais non se tocan.",
+  "Datos de ejemplo eliminados.": "Datos de exemplo eliminados.",
+  "guardado": "gardado",
+  "Error al guardar en el archivo: ": "Erro ao gardar no ficheiro: ",
+  "No se pudo abrir el archivo: ": "Non se puido abrir o ficheiro: ",
+  "💾 Archivo reconectado: {n}. Los cambios se guardan en él automáticamente.": "💾 Ficheiro reconectado: {n}. Os cambios gárdanse nel automaticamente.",
+  "Error al reconectar: ": "Erro ao reconectar: ",
+  "Este navegador guarda los datos en el propio navegador. Usa «Exportar todo» de vez en cuando.": "Este navegador garda os datos no propio navegador. Usa «Exportar todo» de cando en vez.",
+  "Sin archivo vinculado (los datos se guardan en este navegador).": "Sen ficheiro ligado (os datos gárdanse neste navegador).",
+  "Archivo vinculado: {n} — pulsa «Reconectar archivo».": "Ficheiro ligado: {n} — preme «Reconectar ficheiro».",
+  "No se pudo leer el archivo vinculado: ": "Non se puido ler o ficheiro ligado: "
+};
+const tr = (k, v) => { let r = (LANG === 'gl' && GL[k]) || k; if (v) for (const x in v) r = r.split('{' + x + '}').join(v[x]); return r; };
+const LABEL = { get loaned() { return tr('Prestado'); }, get late() { return tr('Retrasado'); }, get returned() { return tr('Devuelto'); } };
+const LABEL_ES = { loaned: 'Prestado', late: 'Retrasado', returned: 'Devuelto' };   // el CSV siempre va en español
 function status(l) { return l.returned ? 'returned' : (l.due < today() ? 'late' : 'loaned'); }
 const activeLoan = bookId => db.loans.find(l => l.bookId === bookId && !l.returned);
 
@@ -168,11 +232,11 @@ const activeLoan = bookId => db.loans.find(l => l.bookId === bookId && !l.return
 function openSheet(html) { $('sheetBody').innerHTML = html; $('sheet').classList.add('open'); }
 function closeSheet() { $('sheet').classList.remove('open'); }
 function dlgAlert(msg) {
-  openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn primary" onclick="closeSheet()">Aceptar</button></div>`);
+  openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn primary" onclick="closeSheet()">${tr('Aceptar')}</button></div>`);
 }
-function dlgConfirm(msg, okText = 'Aceptar') {
+function dlgConfirm(msg, okText = tr('Aceptar')) {
   return new Promise(res => {
-    openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn" id="dNo">Cancelar</button><button class="btn primary" id="dYes">${esc(okText)}</button></div>`);
+    openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn" id="dNo">${tr('Cancelar')}</button><button class="btn primary" id="dYes">${esc(okText)}</button></div>`);
     $('dNo').onclick = () => { closeSheet(); res(false); };
     $('dYes').onclick = () => { closeSheet(); res(true); };
   });
@@ -182,7 +246,7 @@ function dlgConfirm(msg, okText = 'Aceptar') {
 function show(t) {
   tab = t;
   for (const x of ['books', 'loans']) { $(x).classList.toggle('hidden', x !== t); $('t-' + x).classList.toggle('on', x === t); }
-  $('fab').setAttribute('aria-label', t === 'books' ? 'Añadir libro' : 'Nuevo préstamo');
+  $('fab').setAttribute('aria-label', t === 'books' ? tr('Añadir libro') : tr('Nuevo préstamo'));
   window.scrollTo(0, 0);
 }
 function addAction() { tab === 'books' ? bookSheet() : loanSheet(); }
@@ -190,13 +254,13 @@ function addAction() { tab === 'books' ? bookSheet() : loanSheet(); }
 /* ---------- Libros ---------- */
 function bookSheet(id) {
   const b = id ? bookById(id) : null;
-  openSheet(`<h2>${b ? 'Editar libro' : 'Añadir libro'}</h2>
+  openSheet(`<h2>${b ? tr('Editar libro') : tr('Añadir libro')}</h2>
     <form id="bf">
-      <div class="f"><label>Título *</label><input id="bTitle" required autocomplete="off" value="${esc(b?.title || '')}"></div>
-      <div class="f"><label>Autor</label><input id="bAuthor" autocomplete="off" value="${esc(b?.author || '')}"></div>
-      <div class="f"><label>ISBN / Notas</label><input id="bNote" autocomplete="off" value="${esc(b?.note || '')}"></div>
-      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Guardar</button></div>
-      ${b ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delBook('${b.id}')">Borrar este libro…</button></div>` : ''}
+      <div class="f"><label>${tr('Título')} *</label><input id="bTitle" required autocomplete="off" value="${esc(b?.title || '')}"></div>
+      <div class="f"><label>${tr('Autor')}</label><input id="bAuthor" autocomplete="off" value="${esc(b?.author || '')}"></div>
+      <div class="f"><label>${tr('ISBN / Notas')}</label><input id="bNote" autocomplete="off" value="${esc(b?.note || '')}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      ${b ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delBook('${b.id}')">${tr('Borrar este libro…')}</button></div>` : ''}
     </form>`);
   $('bf').onsubmit = e => {
     e.preventDefault();
@@ -207,8 +271,8 @@ function bookSheet(id) {
   setTimeout(() => $('bTitle').focus(), 50);
 }
 async function delBook(id) {
-  if (activeLoan(id)) return dlgAlert('Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.');
-  if (!await dlgConfirm('¿Borrar este libro y su historial de préstamos?', 'Borrar')) return;
+  if (activeLoan(id)) return dlgAlert(tr('Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.'));
+  if (!await dlgConfirm(tr('¿Borrar este libro y su historial de préstamos?'), tr('Borrar'))) return;
   db.books = db.books.filter(b => b.id !== id);
   db.loans = db.loans.filter(l => l.bookId !== id);
   save(); render();
@@ -216,7 +280,7 @@ async function delBook(id) {
 const dupKey = b => norm(b.title) + '|' + norm(b.author);
 function renderBooks() {
   const dupCount = {}; for (const b of db.books) dupCount[dupKey(b)] = (dupCount[dupKey(b)] || 0) + 1;
-  const dup = b => dupCount[dupKey(b)] > 1 ? ' <span class="dup" title="Hay más de un ejemplar con este título y autor">duplicado</span>' : '';
+  const dup = b => dupCount[dupKey(b)] > 1 ? ` <span class="dup" title="${tr('Hay más de un ejemplar con este título y autor')}">${tr('duplicado')}</span>` : '';
   const q = $('bSearch').value.toLowerCase();
   const list = db.books.filter(b => (b.title + ' ' + b.author + ' ' + b.note).toLowerCase().includes(q))
     .sort((a, b) => a.title.localeCompare(b.title));
@@ -226,43 +290,43 @@ function renderBooks() {
     const g = val[SORT.books.k];
     const rows = [...list].sort((a, b) => SORT.books.d * cmp(g(a), g(b)));
     $('bookList').innerHTML = rows.length ? `<div class="tw"><table class="tbl"><thead><tr>
-      ${th('books','title','Título')}${th('books','author','Autor')}${th('books','note','ISBN / Notas')}${th('books','state','Estado')}${th('books','who','Prestado a')}${th('books','due','Devolver el')}<th></th></tr></thead><tbody>
+      ${th('books','title',tr('Título'))}${th('books','author',tr('Autor'))}${th('books','note',tr('ISBN / Notas'))}${th('books','state',tr('Estado'))}${th('books','who',tr('Prestado a'))}${th('books','due',tr('Devolver el'))}<th></th></tr></thead><tbody>
       ${rows.map(b => { const o = activeLoan(b.id), s = o && status(o);
-        return `<tr class="click" onclick="bookSheet('${b.id}')" title="Editar"><td><b>${esc(b.title)}</b>${dup(b)}</td><td>${esc(b.author)}</td><td>${esc(b.note)}</td>
-          <td><span class="badge ${o ? 'b-' + s : 'b-avail'}">${o ? LABEL[s] : 'Disponible'}</span></td>
+        return `<tr class="click" onclick="bookSheet('${b.id}')" title="${tr('Editar')}"><td><b>${esc(b.title)}</b>${dup(b)}</td><td>${esc(b.author)}</td><td>${esc(b.note)}</td>
+          <td><span class="badge ${o ? 'b-' + s : 'b-avail'}">${o ? LABEL[s] : tr('Disponible')}</span></td>
           <td>${o ? esc(o.who) : ''}</td><td>${o ? fmt(o.due) : ''}</td>
-          <td class="r" onclick="event.stopPropagation()">${o ? `<button class="btn sm" onclick="returnSheet('${o.id}')">Marcar devuelto</button>` : `<button class="btn sm primary" onclick="loanSheet('${b.id}')">Prestar</button>`}</td></tr>`; }).join('')}
+          <td class="r" onclick="event.stopPropagation()">${o ? `<button class="btn sm" onclick="returnSheet('${o.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn sm primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`}</td></tr>`; }).join('')}
       </tbody></table></div>`
-      : `<div class="empty">${db.books.length ? 'Ningún libro coincide.' : 'Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.'}</div>`;
+      : `<div class="empty">${db.books.length ? tr('Ningún libro coincide.') : tr('Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`;
     return;
   }
   $('bookList').innerHTML = list.length ? list.map(b => {
     const out = activeLoan(b.id), s = out && status(out);
-    const badge = out ? `<span class="badge b-${s}">${s === 'late' ? 'Retrasado' : 'Prestado'}</span>` : `<span class="badge b-avail">Disponible</span>`;
+    const badge = out ? `<span class="badge b-${s}">${s === 'late' ? tr('Retrasado') : tr('Prestado')}</span>` : `<span class="badge b-avail">${tr('Disponible')}</span>`;
     return `<div class="item">
       <div class="row"><div class="grow click" onclick="bookSheet('${b.id}')"><div class="t">${esc(b.title)}${dup(b)}</div>
         <div class="sub">${esc([b.author, b.note].filter(Boolean).join(' · ')) || '&nbsp;'}</div>
-        ${out ? `<div class="sub">con ${esc(out.who)} · devolver el ${fmt(out.due)}</div>` : ''}</div>${badge}</div>
+        ${out ? `<div class="sub">${tr('con {who} · devolver el {date}', { who: esc(out.who), date: fmt(out.due) })}</div>` : ''}</div>${badge}</div>
       <div class="acts">
-        ${out ? `<button class="btn" onclick="returnSheet('${out.id}')">Marcar devuelto</button>` : `<button class="btn primary" onclick="loanSheet('${b.id}')">Prestar</button>`}</div>
+        ${out ? `<button class="btn" onclick="returnSheet('${out.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`}</div>
     </div>`;
-  }).join('') : `<div class="empty">${db.books.length ? 'Ningún libro coincide.' : 'Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.'}</div>`;
+  }).join('') : `<div class="empty">${db.books.length ? tr('Ningún libro coincide.') : tr('Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`;
 }
 
 /* ---------- Préstamos ---------- */
 function loanSheet(bookId) {
   const avail = db.books.filter(b => !activeLoan(b.id)).sort((a, b) => a.title.localeCompare(b.title));
-  if (!avail.length) return dlgAlert(db.books.length ? 'Todos los libros están prestados.' : 'Primero añade algún libro en la pestaña Libros.');
+  if (!avail.length) return dlgAlert(db.books.length ? tr('Todos los libros están prestados.') : tr('Primero añade algún libro en la pestaña Libros.'));
   const people = [...new Set(db.loans.map(l => l.who).filter(Boolean))];
-  openSheet(`<h2>Nuevo préstamo</h2>
+  openSheet(`<h2>${tr('Nuevo préstamo')}</h2>
     <form id="lf">
-      <div class="f"><label>Libro *</label><div id="bookBox"></div></div>
-      <div class="f"><label>Prestado a *</label><input id="lWho" required list="people" autocomplete="off"><datalist id="people">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>
+      <div class="f"><label>${tr('Libro')} *</label><div id="bookBox"></div></div>
+      <div class="f"><label>${tr('Prestado a')} *</label><input id="lWho" required list="people" autocomplete="off"><datalist id="people">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>
       <div class="two">
-        <div class="f"><label>Fecha de préstamo</label><input id="lDate" type="date" required value="${today()}"></div>
-        <div class="f"><label>Devolución prevista</label><input id="lDue" type="date" required value="${addDays(null, 14)}"></div>
+        <div class="f"><label>${tr('Fecha de préstamo')}</label><input id="lDate" type="date" required value="${today()}"></div>
+        <div class="f"><label>${tr('Devolución prevista')}</label><input id="lDue" type="date" required value="${addDays(null, 14)}"></div>
       </div>
-      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Prestar</button></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Prestar')}</button></div>
     </form>`);
   let sel = bookId || (avail.length === 1 ? avail[0].id : '');
   const drawPick = () => {
@@ -279,18 +343,18 @@ function loanSheet(bookId) {
     $('pick').innerHTML = all.length ? all.slice(0, 6).map(b => {
         const out = activeLoan(b.id);   // prestado: sale igual pero no se puede elegir
         return `<div class="po ${out ? 'lent' : ''}" ${out ? '' : `data-id="${b.id}"`}><div class="row"><div class="grow"><div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>${out ? '<span class="badge b-loaned">PRESTADO</span>' : ''}</div></div>`;
-      }).join('') + (all.length > 6 ? `<div class="sub" style="padding:10px 12px">y ${all.length - 6} más… sigue escribiendo</div>` : '')
-      : '<div class="sub" style="padding:12px">Ningún libro coincide.</div>';
+      }).join('') + (all.length > 6 ? `<div class="sub" style="padding:10px 12px">${tr('y {n} más… sigue escribiendo', { n: all.length - 6 })}</div>` : '')
+      : `<div class="sub" style="padding:12px">${tr('Ningún libro coincide.')}</div>`;
   };
   const drawBox = (focus) => {
     const b = sel && bookById(sel);
     if (b) {   // libro ya elegido: solo su tarjeta y una X roja para quitarlo
       $('bookBox').innerHTML = `<div class="chosen"><div class="grow"><div class="t">${esc(b.title)}</div>${b.author ? `<div class="sub">${esc(b.author)}</div>` : ''}</div>
-        <button type="button" class="x" id="unpick" aria-label="Quitar este libro" title="Quitar este libro">✕</button></div>`;
+        <button type="button" class="x" id="unpick" aria-label="${tr('Quitar este libro')}" title="${tr('Quitar este libro')}">✕</button></div>`;
       $('unpick').onclick = () => { sel = ''; drawBox(true); };
       if (focus) $('lWho').focus();
     } else {
-      $('bookBox').innerHTML = `<input id="lSearchBook" type="search" placeholder="Buscar por título o autor…" autocomplete="off"><div id="pick" class="pick"></div>`;
+      $('bookBox').innerHTML = `<input id="lSearchBook" type="search" placeholder="${tr('Buscar por título o autor…')}" autocomplete="off"><div id="pick" class="pick"></div>`;
       $('lSearchBook').oninput = drawPick;
       $('pick').onclick = e => { const o = e.target.closest('.po'); if (o) { sel = o.dataset.id; drawBox(true); } };
       drawPick(); if (focus) $('lSearchBook').focus();
@@ -301,30 +365,30 @@ function loanSheet(bookId) {
   $('lDate').onchange = () => { if ($('lDate').value) $('lDue').value = addDays($('lDate').value, 14); };
   $('lf').onsubmit = e => {
     e.preventDefault();
-    if (!sel) return dlgAlert('Elige un libro de la lista.');
-    if ($('lDue').value < $('lDate').value) return dlgAlert('La devolución prevista no puede ser anterior al préstamo.');
+    if (!sel) return dlgAlert(tr('Elige un libro de la lista.'));
+    if ($('lDue').value < $('lDate').value) return dlgAlert(tr('La devolución prevista no puede ser anterior al préstamo.'));
     db.loans.push({ id: uid(), bookId: sel, who: $('lWho').value.trim(), date: $('lDate').value, due: $('lDue').value, returned: null });
     save(); closeSheet(); render(); if (tab !== 'loans') show('loans');
   };
 }
 function returnSheet(id) {
   const l = db.loans.find(x => x.id === id), b = bookById(l.bookId);
-  openSheet(`<h2>Marcar como devuelto</h2>
-    <p class="sub" style="margin-top:-8px">${esc(b?.title || '')} · prestado a ${esc(l.who)}</p>
-    <form id="rf"><div class="f"><label>Fecha real de devolución</label><input id="rDate" type="date" required value="${today()}"></div>
-      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">Cancelar</button><button class="btn primary">Confirmar</button></div></form>`);
+  openSheet(`<h2>${tr('Marcar como devuelto')}</h2>
+    <p class="sub" style="margin-top:-8px">${esc(b?.title || '')} · ${tr('prestado a')} ${esc(l.who)}</p>
+    <form id="rf"><div class="f"><label>${tr('Fecha real de devolución')}</label><input id="rDate" type="date" required value="${today()}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Confirmar')}</button></div></form>`);
   $('rf').onsubmit = e => { e.preventDefault(); l.returned = $('rDate').value; save(); closeSheet(); render(); };
 }
 function reopen(id) { db.loans.find(l => l.id === id).returned = null; save(); render(); }
 async function delLoan(id) {
-  if (!await dlgConfirm('¿Borrar este préstamo?', 'Borrar')) return;
+  if (!await dlgConfirm(tr('¿Borrar este préstamo?'), tr('Borrar'))) return;
   db.loans = db.loans.filter(l => l.id !== id); save(); render();
 }
 function renderLoans() {
   const q = norm($('lSearch').value);
   const all = [...db.loans].sort((a, b) => b.date.localeCompare(a.date));
   const count = s => all.filter(l => !s || status(l) === s).length;
-  $('chips').innerHTML = [['', 'Todos'], ['loaned', 'Prestados'], ['late', 'Retrasados'], ['returned', 'Devueltos']]
+  $('chips').innerHTML = [['', tr('Todos')], ['loaned', tr('Prestados')], ['late', tr('Retrasados')], ['returned', tr('Devueltos')]]
     .map(([k, n]) => `<button class="chip ${lFilter === k ? 'on' : ''}" onclick="lFilter='${k}';renderLoans()">${n} (${count(k)})</button>`).join('');
   const list = all.filter(l => !lFilter || status(l) === lFilter)
     .filter(l => { const b = bookById(l.bookId); return norm((b?.title || '') + ' ' + (b?.author || '') + ' ' + l.who).includes(q); });
@@ -333,54 +397,57 @@ function renderLoans() {
     const g = val[SORT.loans.k];
     const rows = [...list].sort((a, b) => SORT.loans.d * cmp(g(a), g(b)));
     $('loanList').innerHTML = rows.length ? `<div class="tw"><table class="tbl"><thead><tr>
-      ${th('loans','title','Libro')}${th('loans','who','Prestado a')}${th('loans','date','Préstamo')}${th('loans','due','Previsto')}${th('loans','returned','Devuelto')}${th('loans','state','Estado')}<th></th></tr></thead><tbody>
+      ${th('loans','title',tr('Libro'))}${th('loans','who',tr('Prestado a'))}${th('loans','date',tr('Préstamo'))}${th('loans','due',tr('Previsto'))}${th('loans','returned',tr('Devuelto'))}${th('loans','state',tr('Estado'))}<th></th></tr></thead><tbody>
       ${rows.map(l => { const s = status(l), b = bookById(l.bookId); let n = '';
-        if (s === 'late') { const d = daysBetween(l.due, today()); n = `<div class="sub" style="color:var(--late)">${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
-        if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); n = `<div class="sub">con ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
-        return `<tr><td><b>${esc(b?.title || '(libro borrado)')}</b></td><td>${esc(l.who)}</td><td>${fmt(l.date)}</td><td>${fmt(l.due)}</td><td>${fmt(l.returned)}</td>
+        if (s === 'late') { const d = daysBetween(l.due, today()); n = `<div class="sub" style="color:var(--late)">${tr('{n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
+        if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); n = `<div class="sub">${tr('con {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
+        return `<tr><td><b>${esc(b?.title || tr('(libro borrado)'))}</b></td><td>${esc(l.who)}</td><td>${fmt(l.date)}</td><td>${fmt(l.due)}</td><td>${fmt(l.returned)}</td>
           <td><span class="badge b-${s}">${LABEL[s]}</span>${n}</td>
-          <td class="r">${l.returned ? `<button class="btn sm" onclick="reopen('${l.id}')">Reabrir</button>` : `<button class="btn sm primary" onclick="returnSheet('${l.id}')">Marcar devuelto</button>`}
-            <button class="btn sm danger" onclick="delLoan('${l.id}')">Borrar</button></td></tr>`; }).join('')}
+          <td class="r">${l.returned ? `<button class="btn sm" onclick="reopen('${l.id}')">${tr('Reabrir')}</button>` : `<button class="btn sm primary" onclick="returnSheet('${l.id}')">${tr('Marcar devuelto')}</button>`}
+            <button class="btn sm danger" onclick="delLoan('${l.id}')">${tr('Borrar')}</button></td></tr>`; }).join('')}
       </tbody></table></div>`
-      : `<div class="empty">${db.loans.length ? 'Ningún préstamo coincide.' : 'Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.'}</div>`;
+      : `<div class="empty">${db.loans.length ? tr('Ningún préstamo coincide.') : tr('Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.')}</div>`;
     return;
   }
   $('loanList').innerHTML = list.length ? list.map(l => {
     const s = status(l), b = bookById(l.bookId);
     let note = '';
-    if (s === 'late') { const d = daysBetween(l.due, today()); note = `<div class="warn">⚠ ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
-    if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); note = `<div class="sub">Devuelto con ${d} ${d === 1 ? 'día' : 'días'} de retraso</div>`; }
+    if (s === 'late') { const d = daysBetween(l.due, today()); note = `<div class="warn">${tr('⚠ {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
+    if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); note = `<div class="sub">${tr('Devuelto con {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
     return `<div class="item">
-      <div class="row"><div class="grow"><div class="t">${esc(b?.title || '(libro borrado)')}</div><div class="sub">Prestado a ${esc(l.who)}</div></div>
+      <div class="row"><div class="grow"><div class="t">${esc(b?.title || tr('(libro borrado)'))}</div><div class="sub">${tr('Prestado a')} ${esc(l.who)}</div></div>
         <span class="badge b-${s}">${LABEL[s]}</span></div>
-      <div class="dates"><div><small>Préstamo</small>${fmt(l.date)}</div><div><small>Previsto</small>${fmt(l.due)}</div><div><small>Devuelto</small>${fmt(l.returned)}</div></div>
+      <div class="dates"><div><small>${tr('Préstamo')}</small>${fmt(l.date)}</div><div><small>${tr('Previsto')}</small>${fmt(l.due)}</div><div><small>${tr('Devuelto')}</small>${fmt(l.returned)}</div></div>
       ${note}
       <div class="acts">
-        ${l.returned ? `<button class="btn" onclick="reopen('${l.id}')">Reabrir</button>` : `<button class="btn primary" onclick="returnSheet('${l.id}')">Marcar devuelto</button>`}
-        <button class="btn danger" onclick="delLoan('${l.id}')">Borrar</button></div>
+        ${l.returned ? `<button class="btn" onclick="reopen('${l.id}')">${tr('Reabrir')}</button>` : `<button class="btn primary" onclick="returnSheet('${l.id}')">${tr('Marcar devuelto')}</button>`}
+        <button class="btn danger" onclick="delLoan('${l.id}')">${tr('Borrar')}</button></div>
     </div>`;
-  }).join('') : `<div class="empty">${db.loans.length ? 'Ningún préstamo coincide.' : 'Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.'}</div>`;
+  }).join('') : `<div class="empty">${db.loans.length ? tr('Ningún préstamo coincide.') : tr('Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.')}</div>`;
 }
 
 /* ---------- Panel de datos ---------- */
-let fileMsg = '', fileErr = false;
-function fstat(t, err) { fileMsg = t; fileErr = !!err; const e = $('fileStatus'); if (e) { e.textContent = t; e.classList.toggle('err', !!err); } }
+let fileMsg = '', fileMsgFn = null, fileErr = false;
+// t puede ser una función, así el mensaje se vuelve a traducir al cambiar de idioma
+function fstat(t, err) { fileMsgFn = typeof t === 'function' ? t : null; fileMsg = fileMsgFn ? fileMsgFn() : t; fileErr = !!err; const e = $('fileStatus'); if (e) { e.textContent = fileMsg; e.classList.toggle('err', !!err); } }
 function dataSheet() {
-  openSheet(`<h2>Datos</h2>
+  openSheet(`<h2>${tr('Datos')}</h2>
     <div id="fileStatus" class="fstat ${fileErr ? 'err' : ''}">${esc(fileMsg)}</div>
     ${FS ? `<div class="stack">
-      <button class="btn block" onclick="newFile()">Nuevo archivo de datos</button>
-      <button class="btn block" onclick="openFile()">Abrir archivo de datos</button>
-      <button class="btn block ${needReconnect ? '' : 'hidden'}" onclick="reconnect()">Reconectar archivo</button></div>` : ''}
-    <div class="sec">Copia de seguridad (CSV, se abre en Excel)</div>
+      <button class="btn block" onclick="newFile()">${tr('Nuevo archivo de datos')}</button>
+      <button class="btn block" onclick="openFile()">${tr('Abrir archivo de datos')}</button>
+      <button class="btn block ${needReconnect ? '' : 'hidden'}" onclick="reconnect()">${tr('Reconectar archivo')}</button></div>` : ''}
+    <div class="sec">${tr('Copia de seguridad (CSV, se abre en Excel)')}</div>
     <div class="stack">
-      <button class="btn block" onclick="exportCSV()">Exportar todo</button>
-      <button class="btn block" onclick="$('csvIn').click()">Importar CSV</button></div>
-    <div class="sec">Datos de ejemplo (para probar)</div>
+      <button class="btn block" onclick="exportCSV()">${tr('Exportar todo')}</button>
+      <button class="btn block" onclick="$('csvIn').click()">${tr('Importar CSV')}</button></div>
+    <div class="sec">${tr('Datos de ejemplo (para probar)')}</div>
     <div class="stack">
-      <button class="btn block" onclick="loadDemo()">Cargar libros y préstamos de ejemplo</button>
-      <button class="btn block danger" onclick="removeDemo()">Quitar los datos de ejemplo</button></div>
-    <div class="btns"><button class="btn primary" onclick="closeSheet()">Cerrar</button></div>`);
+      <button class="btn block" onclick="loadDemo()">${tr('Cargar libros y préstamos de ejemplo')}</button>
+      <button class="btn block danger" onclick="removeDemo()">${tr('Quitar los datos de ejemplo')}</button></div>
+    <div class="sec">${tr('Idioma')}</div>
+    <div class="two"><button class="btn ${LANG === 'es' ? 'primary' : ''}" onclick="setLang('es')">Español</button><button class="btn ${LANG === 'gl' ? 'primary' : ''}" onclick="setLang('gl')">Galego</button></div>
+    <div class="btns"><button class="btn primary" onclick="closeSheet()">${tr('Cerrar')}</button></div>`);
 }
 /* ---------- CSV (se abre en Excel) ---------- */
 const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
@@ -388,10 +455,10 @@ const ALIASES = {
   title: ['title','titulo','libro','book','nombre','name'],
   author: ['author','autor'],
   note: ['notes','note','notas','nota','isbn','isbn / notes','isbn / notas','observaciones'],
-  who: ['borrower','prestado a','persona','who','quien','to','prestatario','usuario'],
-  date: ['loan date','loaned','date','fecha','fecha prestamo','fecha de prestamo','prestamo'],
-  due: ['expected return','due','due date','return due','fecha prevista','devolucion prevista','fecha devolucion prevista','fecha limite'],
-  returned: ['returned date','actual return','returned on','return date','fecha devolucion','devuelto','fecha de devolucion','devolucion'],
+  who: ['borrower','prestado a','persona','persoa','who','quien','to','prestatario','usuario'],
+  date: ['loan date','loaned','date','fecha','fecha prestamo','fecha de prestamo','prestamo','data','data prestamo','data do prestamo'],
+  due: ['expected return','due','due date','return due','fecha prevista','devolucion prevista','fecha devolucion prevista','fecha limite','data prevista','data limite'],
+  returned: ['returned date','actual return','returned on','return date','fecha devolucion','devuelto','fecha de devolucion','devolucion','data devolucion','devolto','data de devolucion'],
   status: ['status','estado'],
   id: ['id','id libro','identificador']
 };
@@ -433,7 +500,7 @@ function csvText() {   // un solo CSV: una fila por préstamo; libros sin prést
   for (const b of db.books) {
     const ls = db.loans.filter(l => l.bookId === b.id);
     if (!ls.length) rows.push([b.title, b.author, b.note, '', '', '', '', '', b.id]);
-    for (const l of ls) rows.push([b.title, b.author, b.note, l.who, l.date, l.due, l.returned || '', LABEL[status(l)], b.id]);
+    for (const l of ls) rows.push([b.title, b.author, b.note, l.who, l.date, l.due, l.returned || '', LABEL_ES[status(l)], b.id]);
   }
   return 'sep=,\r\n' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
 }
@@ -447,9 +514,9 @@ function exportCSV() {
 /* Fusiona un CSV con los datos actuales (libros por ID o título; préstamos sin duplicar). Devuelve {nb, nl} o {err}. */
 function importText(text) {
   const rows = parseCSV(text);
-  if (rows.length < 2) return { err: 'El CSV está vacío.' };
+  if (rows.length < 2) return { err: tr('El CSV está vacío.') };
   const m = colMap(rows[0]);
-  if (m.title === undefined) return { err: 'No se encontró una columna Título/Libro en la primera fila.' };
+  if (m.title === undefined) return { err: tr('No se encontró una columna Título/Libro en la primera fila.') };
   const claimed = new Set();
   let nb = 0, nl = 0;
   const cell = (row, k) => (m[k] !== undefined ? (row[m[k]] || '').trim() : '');
@@ -457,7 +524,7 @@ function importText(text) {
     const title = cell(row, 'title'); if (!title) continue;
     const bid = cell(row, 'id'), hasLoan = !!cell(row, 'who');
     let ret = toISO(cell(row, 'returned'));
-    if (!ret && /^(returned|devuelto)/.test(norm(cell(row, 'status')))) ret = today();
+    if (!ret && /^(returned|devuelto|devolto)/.test(norm(cell(row, 'status')))) ret = today();
     let b = bid ? db.books.find(x => x.id === bid) : null;
     if (!b && !bid) {   // sin ID (Excel a mano): puede haber ejemplares repetidos con el mismo título
       const same = db.books.filter(x => norm(x.title) === norm(title));
@@ -483,7 +550,7 @@ function importCSV(e) {
     const res = importText(r.result);
     if (res.err) return dlgAlert(res.err);
     save(); render();
-    dlgAlert(`Importado: ${res.nb} libros nuevos, ${res.nl} préstamos.`);
+    dlgAlert(tr('Importado: {nb} libros nuevos, {nl} préstamos.', { nb: res.nb, nl: res.nl }));
   };
   r.readAsText(file); e.target.value = '';
 }
@@ -502,8 +569,8 @@ async function writeFile() {
     const w = await fileHandle.createWritable();
     await w.write('\ufeff' + csvText()); await w.close();
     try { localStorage.setItem('library.lastBackup', String(Date.now())); } catch {}
-    fstat('💾 ' + fileHandle.name + ' — guardado ' + new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
-  } catch (e) { fstat('Error al guardar en el archivo: ' + e.message, true); }
+    { const hm = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), nm = fileHandle.name; fstat(() => '💾 ' + nm + ' — ' + tr('guardado') + ' ' + hm); }
+  } catch (e) { fstat(tr('Error al guardar en el archivo: ') + e.message, true); }
 }
 /* Fusiona el archivo con los datos del navegador y reescribe el archivo con el resultado (no se pierde nada). */
 async function loadFromHandle(h) {
@@ -522,23 +589,23 @@ async function openFile() {
     const [h] = await showOpenFilePicker({ types: FTYPES });
     await h.requestPermission({ mode: 'readwrite' });
     await loadFromHandle(h); await idbSet(h);
-  } catch (e) { if (e.name !== 'AbortError') fstat('No se pudo abrir el archivo: ' + e.message, true); }
+  } catch (e) { if (e.name !== 'AbortError') fstat(tr('No se pudo abrir el archivo: ') + e.message, true); }
 }
 async function reconnect() {
   try {
     const h = await idbGet();
     if (await h.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
-    await loadFromHandle(h); needReconnect = false; renderBanner(); dlgAlert('💾 Archivo reconectado: ' + h.name + '. Los cambios se guardan en él automáticamente.');
-  } catch (e) { fstat('Error al reconectar: ' + e.message, true); }
+    await loadFromHandle(h); needReconnect = false; renderBanner(); dlgAlert(tr('💾 Archivo reconectado: {n}. Los cambios se guardan en él automáticamente.', { n: h.name }));
+  } catch (e) { fstat(tr('Error al reconectar: ') + e.message, true); }
 }
 async function initFile() {
-  if (!FS) { fstat('Este navegador guarda los datos en el propio navegador. Usa «Exportar todo» de vez en cuando.'); renderBanner(); return; }
-  fstat('Sin archivo vinculado (los datos se guardan en este navegador).');
+  if (!FS) { fstat(() => tr('Este navegador guarda los datos en el propio navegador. Usa «Exportar todo» de vez en cuando.')); renderBanner(); return; }
+  fstat(() => tr('Sin archivo vinculado (los datos se guardan en este navegador).'));
   try {
     const h = await idbGet();
     if (h && await h.queryPermission({ mode: 'readwrite' }) === 'granted') await loadFromHandle(h);
-    else if (h) { needReconnect = true; fstat('Archivo vinculado: ' + h.name + ' — pulsa «Reconectar archivo».'); }
-  } catch (e) { fstat('No se pudo leer el archivo vinculado: ' + e.message, true); }
+    else if (h) { needReconnect = true; fstat(() => tr('Archivo vinculado: {n} — pulsa «Reconectar archivo».', { n: h.name })); }
+  } catch (e) { fstat(tr('No se pudo leer el archivo vinculado: ') + e.message, true); }
   renderBanner();
 }
 
@@ -591,14 +658,14 @@ function loadDemo() {
     db.loans.push({ id: uid(), bookId: b.id, who, date: addDays(null, start), due: addDays(null, start + len), returned: ret == null ? null : addDays(null, start + ret), demo: true }); nl++;
   }
   save(); render();
-  dlgAlert(`Cargados ${DEMO_BOOKS.length} libros y ${nl} préstamos de ejemplo.`);
+  dlgAlert(tr('Cargados {n} libros y {nl} préstamos de ejemplo.', { n: DEMO_BOOKS.length, nl }));
 }
 async function removeDemo() {
-  if (!await dlgConfirm('¿Quitar los libros y préstamos de ejemplo? Tus datos reales no se tocan.', 'Quitar')) return;
+  if (!await dlgConfirm(tr('¿Quitar los libros y préstamos de ejemplo? Tus datos reales no se tocan.'), tr('Quitar'))) return;
   const ids = new Set(db.books.filter(b => b.demo).map(b => b.id));
   db.books = db.books.filter(b => !b.demo);
   db.loans = db.loans.filter(l => !l.demo && !ids.has(l.bookId));
-  save(); render(); dlgAlert('Datos de ejemplo eliminados.');
+  save(); render(); dlgAlert(tr('Datos de ejemplo eliminados.'));
 }
 
 const isDesk = () => document.body.classList.contains('desk');
@@ -608,7 +675,7 @@ const th = (t, k, label) => `<th class="sortable" onclick="sortBy('${t}','${k}')
 function sortBy(t, k) { const s = SORT[t]; s.d = s.k === k ? -s.d : 1; s.k = k; render(); }
 function applyView(desk) {
   document.body.classList.toggle('desk', desk);
-  $('viewBtn').innerHTML = lbl(desk ? '📱 Móvil' : '🖥 PC');
+  $('viewBtn').innerHTML = lbl(desk ? tr('📱 Móvil') : '🖥 PC');
   // en un teléfono, la versión PC usa un ancho de página de 1100 px (como un ordenador)
   $('vp').setAttribute('content', desk ? 'width=1100' : 'width=device-width, initial-scale=1, viewport-fit=cover');
 }
@@ -616,7 +683,7 @@ const lbl = t => { const [e, ...r] = t.split(' '); return e + '<span class="lbl"
 const THEMES = [['auto', '🌓 Auto'], ['light', '☀ Claro'], ['dark', '🌙 Oscuro']];
 function applyTheme(t) {
   if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
-  $('themeBtn').innerHTML = lbl(THEMES.find(x => x[0] === t)[1]);
+  $('themeBtn').innerHTML = lbl(tr(THEMES.find(x => x[0] === t)[1]));
 }
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'auto';
@@ -625,29 +692,42 @@ function toggleTheme() {
 }
 function renderBanner() {
   const el = $('banner'); let html = '', good = false;
-  if (needReconnect) { html = '<span>💾 El archivo de datos está desconectado: los cambios no se guardan en él.</span><button class="btn primary" onclick="reconnect()">Reconectar</button>'; }
+  if (needReconnect) { html = `<span>${tr('💾 El archivo de datos está desconectado: los cambios no se guardan en él.')}</span><button class="btn primary" onclick="reconnect()">${tr('Reconectar')}</button>`; }
   else if (!fileHandle && db.books.length) {
     let t = 0; try { t = +localStorage.getItem('library.lastBackup') || 0; } catch {}
     const days = t ? Math.floor((Date.now() - t) / 864e5) : null;
-    if (days === null || days >= 7) html = `<span>⚠ ${days === null ? 'Aún no has hecho ninguna copia.' : `Última copia hace ${days} días.`}</span><button class="btn" onclick="exportCSV()">Exportar todo</button>`;
+    if (days === null || days >= 7) html = `<span>⚠ ${days === null ? tr('Aún no has hecho ninguna copia.') : tr('Última copia hace {n} días.', { n: days })}</span><button class="btn" onclick="exportCSV()">${tr('Exportar todo')}</button>`;
   }
   el.innerHTML = html; el.classList.toggle('hidden', !html); el.classList.toggle('good', good);
 }
+function applyLang(l) {
+  LANG = l; document.documentElement.lang = l;
+  $('bSearch').placeholder = tr('Buscar por título o autor…');
+  $('lSearch').placeholder = tr('Buscar por libro, autor o persona…');
+  $('fab').setAttribute('aria-label', tab === 'books' ? tr('Añadir libro') : tr('Nuevo préstamo'));
+  if (fileMsgFn) fileMsg = fileMsgFn();
+  applyTheme(document.documentElement.getAttribute('data-theme') || 'auto');
+  applyView(document.body.classList.contains('desk'));
+  render();
+}
+function setLang(l) { applyLang(l); try { localStorage.setItem('library.lang', l); } catch {} dataSheet(); }
 function toggleView() {
   const d = !document.body.classList.contains('desk');
   applyView(d); render(); try { localStorage.setItem('library.view', d ? 'desk' : 'mobile'); } catch {}
 }
 function render() {
   renderBooks(); renderLoans();
-  $('t-books').textContent = `Libros (${db.books.length})`;
+  $('t-books').textContent = `${tr('Libros')} (${db.books.length})`;
   const out = db.loans.filter(l => !l.returned).length;
-  $('t-loans').textContent = `Préstamos${out ? ` (${out})` : ''}`;
+  $('t-loans').textContent = `${tr('Préstamos')}${out ? ` (${out})` : ''}`;
   renderBanner();
 }
 let v = null; try { v = localStorage.getItem('library.view'); } catch {}
 applyView(v ? v === 'desk' : screen.width >= 1000);
 let savedTheme = null; try { savedTheme = localStorage.getItem('library.theme'); } catch {}
 applyTheme(THEMES.some(x => x[0] === savedTheme) ? savedTheme : 'auto');
+let savedLang = null; try { savedLang = localStorage.getItem('library.lang'); } catch {}
+applyLang(savedLang || (/^gl/i.test(navigator.language || '') ? 'gl' : 'es'));
 render(); initFile();
 </script>
 </body>

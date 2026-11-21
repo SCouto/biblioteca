@@ -12,6 +12,7 @@ Es **un único archivo** (`library.html`): se abre con doble clic en el ordenado
 - Al crear un préstamo se busca el libro escribiendo: salen los más parecidos con su autor, y los que ya están prestados aparecen marcados como **PRESTADO**.
 - **PC y móvil:** en el ordenador, tablas ordenables; en el móvil, tarjetas con botón **+**. Botón para cambiar de vista.
 - **Tema** claro, oscuro o automático.
+- **Idioma:** español o gallego (**⚙ Datos → Idioma**). Se recuerda; por defecto es español, o gallego si el navegador está en gallego. El CSV exportado va siempre en español, pero al importar se entienden las cabeceras en gallego.
 
 ## Cómo usarla
 
