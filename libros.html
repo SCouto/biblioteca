@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta id="vp" name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis libros</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📚%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg:#f4f4f1; --card:#fff; --ink:#1d1d1f; --muted:#6e6e73; --line:#e3e3df; --accent:#3f7d1f; --on-accent:#fff;
+    --ok:#1e7e34; --ok-bg:#e3f4e7; --loan:#a35c00; --loan-bg:#fdf0da; --late:#c62828; --late-bg:#fde7e7; --chip:#e9e9e5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#141416; --card:#202024; --ink:#f2f2f4; --muted:#9a9aa2; --line:#33333a; --accent:#8fd35a; --on-accent:#10200a;
+      --ok:#7bd88f; --ok-bg:#16301d; --loan:#ffc069; --loan-bg:#3a2a0e; --late:#ff8a80; --late-bg:#3d1a1a; --chip:#2c2c32; }
+  }
+  :root[data-theme="dark"] { --bg:#141416; --card:#202024; --ink:#f2f2f4; --muted:#9a9aa2; --line:#33333a; --accent:#8fd35a; --on-accent:#10200a;
+      --ok:#7bd88f; --ok-bg:#16301d; --loan:#ffc069; --loan-bg:#3a2a0e; --late:#ff8a80; --late-bg:#3d1a1a; --chip:#2c2c32; }
+  :root[data-theme="light"] { color-scheme:light; }
+  :root[data-theme="dark"] { color-scheme:dark; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:96px; }
+  .wrap { max-width:720px; margin:0 auto; padding:0 14px; }
+
+  header { position:sticky; top:0; z-index:5; background:var(--bg); padding:14px 0 10px; }
+  .top { display:flex; align-items:center; gap:10px; }
+  .top h1 { font-size:20px; line-height:1.15; margin:0; flex:1; white-space:nowrap; min-width:0; }
+  .top h1 small { display:block; font-size:12px; font-weight:500; color:var(--muted); letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; }
+  .logo { width:46px; height:46px; border-radius:50%; flex:none; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  @media (max-width:520px) { .top { gap:8px; } .logo { width:38px; height:38px; } .top h1 small { display:none; } .icon { padding:0 10px; } #themeBtn .lbl, #viewBtn .lbl, #statsBtn .lbl, #dataBtn .lbl { display:none; } }
+  .icon { padding:0 12px; }
+  .icon { background:var(--card); border:1px solid var(--line); color:var(--ink); border-radius:12px; height:44px; padding:0 14px; font-size:15px; cursor:pointer; }
+  .tabs { display:flex; background:var(--chip); border-radius:12px; padding:4px; margin-top:12px; }
+  .tabs button { flex:1; border:0; background:none; color:var(--muted); height:40px; border-radius:9px; font-size:16px; font-weight:600; cursor:pointer; }
+  .tabs button.on { background:var(--card); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.15); }
+
+  input, select { width:100%; height:48px; padding:0 12px; font:inherit; color:var(--ink); background:var(--card); border:1px solid var(--line); border-radius:12px; }
+  input:focus, select:focus { outline:2px solid var(--accent); border-color:transparent; }
+  .search { margin:6px 0 10px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:10px; }
+  .chip { flex:none; border:0; background:var(--chip); color:var(--ink); padding:9px 14px; border-radius:20px; font-size:14px; cursor:pointer; }
+  .chip.on { background:var(--accent); color:var(--on-accent); font-weight:600; }
+
+  .item { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; margin-bottom:10px; }
+  .row { display:flex; gap:10px; align-items:flex-start; }
+  .grow { flex:1; min-width:0; }
+  .t { font-weight:650; font-size:17px; overflow-wrap:anywhere; }
+  .sub { color:var(--muted); font-size:14px; margin-top:2px; overflow-wrap:anywhere; }
+  .badge { flex:none; font-size:13px; font-weight:650; padding:4px 11px; border-radius:20px; white-space:nowrap; }
+  .b-loaned { color:var(--loan); background:var(--loan-bg); }
+  .b-late { color:var(--late); background:var(--late-bg); }
+  .b-returned, .b-avail { color:var(--ok); background:var(--ok-bg); }
+  .dates { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; font-size:15px; }
+  .dates small { display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .warn { color:var(--late); font-size:14px; margin-top:8px; font-weight:600; }
+  .acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .btn { height:44px; padding:0 16px; border-radius:12px; border:1px solid var(--line); background:none; color:var(--ink); font:inherit; font-size:15px; cursor:pointer; }
+  .btn.primary { background:var(--accent); color:var(--on-accent); border-color:transparent; font-weight:650; }
+  .btn.danger { color:var(--late); }
+  .btn.block { width:100%; }
+  .empty { text-align:center; color:var(--muted); padding:40px 10px; }
+
+  .fab { position:fixed; right:18px; bottom:calc(18px + env(safe-area-inset-bottom)); width:60px; height:60px; border-radius:30px; border:0;
+         background:var(--accent); color:var(--on-accent); font-size:32px; line-height:1; box-shadow:0 4px 14px rgba(0,0,0,.35); cursor:pointer; z-index:6; }
+
+  #sheet { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:flex-end; justify-content:center; z-index:20; }
+  #sheet.open { display:flex; }
+  #sheetBody { background:var(--card); width:100%; max-width:560px; max-height:92vh; overflow:auto; border-radius:20px 20px 0 0; padding:20px 18px calc(20px + env(safe-area-inset-bottom)); }
+  @media (min-width:600px) { #sheet { align-items:center; } #sheetBody { border-radius:20px; } }
+  #sheetBody h2 { margin:0 0 14px; font-size:20px; }
+  .f { margin-bottom:12px; }
+  .f label { display:block; font-size:13px; color:var(--muted); margin-bottom:4px; }
+  .pick { margin-top:8px; border:1px solid var(--line); border-radius:12px; }
+  .po { padding:10px 12px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .po:last-child { border-bottom:0; }
+  .po.on { background:var(--accent); color:var(--on-accent); } .po.on .sub { color:inherit; opacity:.85; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .btns { display:flex; gap:10px; margin-top:16px; } .btns .btn { flex:1; }
+  .sec { margin:18px 0 8px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  .fstat { font-size:14px; padding:10px 12px; border-radius:12px; background:var(--chip); margin-bottom:10px; }
+  .fstat.err { background:var(--late-bg); color:var(--late); }
+  .stack { display:grid; gap:8px; }
+  /* versión escritorio */
+  body.desk .wrap { max-width:1100px; }
+  body.desk header .top { gap:12px; }
+  body.desk .tabs { max-width:520px; margin-left:auto; margin-right:auto; }
+  body.desk .search { max-width:480px; margin-left:auto; margin-right:auto; display:block; }
+  body.desk .chips { justify-content:center; }
+  .tw { background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+  .tbl { width:100%; border-collapse:collapse; font-size:15px; }
+  .tbl th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:12px 12px; border-bottom:1px solid var(--line); background:var(--chip); white-space:nowrap; }
+  .tbl th.sortable { cursor:pointer; user-select:none; } .tbl th.sortable:hover { color:var(--ink); }
+  .tbl td { padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .tbl tr:last-child td { border-bottom:0; }
+  .tbl tbody tr:hover { background:var(--chip); }
+  .tbl td.r { text-align:right; white-space:nowrap; }
+  .tbl .sub { margin:0; }
+  .btn.sm { height:34px; padding:0 12px; font-size:14px; }
+  body.desk .empty { grid-column:1/-1; }
+  body.desk #sheet { align-items:center; }
+  body.desk #sheetBody { border-radius:20px; }
+  .click { cursor:pointer; }
+  .po.lent { opacity:.55; cursor:default; }
+  .chosen { display:flex; align-items:center; gap:10px; padding:10px 10px 10px 14px; border-radius:12px; background:var(--chip); border:1px solid var(--accent); }
+  .chosen .x { flex:none; width:40px; height:40px; border-radius:50%; border:0; background:var(--late-bg); color:var(--late); font-size:18px; font-weight:700; cursor:pointer; }
+  .banner { display:flex; align-items:center; gap:12px; margin:4px 0 10px; padding:10px 12px; border-radius:12px; font-size:14px; background:var(--loan-bg); color:var(--loan); }
+  .banner span { flex:1; } .banner .btn { height:36px; font-size:14px; flex:none; }
+  .banner.good { background:var(--ok-bg); color:var(--ok); }
+  .dup { font-size:11px; font-weight:650; text-transform:uppercase; letter-spacing:.04em; color:var(--loan); background:var(--loan-bg); padding:2px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; white-space:nowrap; }
+  .btn.danger.sm { height:34px; font-size:14px; border-color:transparent; }
+  .tabs button { font-size:15px; padding:0 4px; }
+  .pager { display:flex; align-items:center; justify-content:center; gap:12px; margin:14px 0 4px; color:var(--muted); font-size:14px; }
+  .pager .btn { min-width:44px; }
+  .pager .btn[disabled] { opacity:.4; cursor:default; }
+  textarea { width:100%; font:inherit; font-size:16px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--ink); resize:vertical; }
+  .rd { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:15px; } .rd span { flex:1; }
+  .rd button { width:36px; height:36px; border-radius:50%; border:0; background:var(--late-bg); color:var(--late); font-weight:700; cursor:pointer; }
+  .top .emoji { font-size:34px; line-height:1; flex:none; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; }
+  .kpi b { display:block; font-size:26px; line-height:1.1; } .kpi span { font-size:13px; color:var(--muted); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  .scard { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px; }
+  .scard h3 { margin:0 0 2px; font-size:16px; } .scard .lead { font-size:13px; color:var(--muted); margin-bottom:10px; min-height:18px; }
+  .scard .body { display:flex; align-items:center; gap:14px; }
+  .donut { width:112px; height:112px; flex:none; transform:rotate(-90deg); }
+  .donut text { transform:rotate(90deg); transform-origin:21px 21px; fill:var(--ink); text-anchor:middle; font-weight:700; font-size:8px; }
+  .legend { list-style:none; margin:0; padding:0; flex:1; min-width:0; font-size:14px; }
+  .legend li { display:flex; align-items:center; gap:8px; padding:4px 0; }
+  .legend i { width:12px; height:12px; border-radius:50%; flex:none; }
+  .legend .lg { flex:1; min-width:0; overflow-wrap:anywhere; line-height:1.25; }
+  .legend small { color:var(--muted); width:34px; text-align:right; }
+  .bars { display:grid; gap:10px; } .bhead { display:flex; gap:8px; justify-content:space-between; font-size:14px; } .bhead .lg { min-width:0; overflow-wrap:anywhere; line-height:1.25; }
+  .bhead small { color:var(--muted); font-weight:400; } .bt { height:12px; border-radius:6px; background:var(--chip); overflow:hidden; margin-top:4px; } .bf { height:100%; border-radius:6px; }
+  .stbl td { padding:7px 6px; } .stbl i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; }
+  #statsBtn.on { background:var(--accent); color:var(--on-accent); border-color:transparent; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="top"><span class="emoji" aria-hidden="true">📚</span><h1>Mis libros</h1><button class="icon" id="themeBtn" onclick="toggleTheme()"></button><button class="icon" id="statsBtn" onclick="toggleStats()"></button><button class="icon" id="viewBtn" onclick="toggleView()">🖥 PC</button><button class="icon" id="dataBtn" onclick="dataSheet()">⚙<span class="lbl"> Datos</span></button></div>
+</div></header>
+
+<main class="wrap">
+  <div id="banner" class="banner hidden"></div>
+  <div class="tabs" style="margin-bottom:10px"><button id="t-books" class="on" onclick="show('books')">Libros</button><button id="t-readers" onclick="show('readers')">Lectores/as</button></div>
+  <section id="books">
+  <input class="search" id="bSearch" type="search" placeholder="Buscar por título o autor…" oninput="PAGE.books=0;renderBooks()">
+  <div class="chips" id="chips"></div>
+  <div id="bookList"></div><div id="pg-books"></div>
+  </section>
+  <section id="readers" class="hidden">
+    <input class="search" id="rSearch" type="search" placeholder="Buscar lector/a…" oninput="PAGE.readers=0;renderReaders()">
+    <div id="readerList"></div><div id="pg-readers"></div>
+  </section>
+  <section id="stats" class="hidden"></section>
+</main>
+
+<button class="fab" id="fab" onclick="addAction()" aria-label="Añadir libro">+</button>
+<div id="sheet" onclick="if(event.target===this)closeSheet()"><div id="sheetBody"></div></div>
+<input id="csvIn" type="file" accept=".csv,text/csv" class="hidden" onchange="importCSV(event)">
+
+<script>
+const KEY = 'libros.v1';
+const $ = id => document.getElementById(id);
+let db = load(), rFilter = '', tab = 'books';
+const PAGE_SIZE = 25, PAGE = { books: 0, readers: 0 };
+
+function load() { let d; try { d = JSON.parse(localStorage.getItem(KEY)); } catch {} return normDb(d); }
+function normDb(d) {
+  d = d && typeof d === 'object' ? d : {};
+  d.books = d.books || []; d.readers = d.readers || []; d.reads = d.reads || [];
+  d.books.forEach((b, i) => { if (b.read) d.reads.push({ id: 'm' + i + Math.random().toString(36).slice(2, 7), bookId: b.id, who: '', date: b.read }); delete b.read; });   // versión anterior: una fecha por libro
+  return d;
+}
+let saveTimer;
+function saveLocal() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {}
+  clearTimeout(saveTimer); saveTimer = setTimeout(writeFile, 250);
+}
+function save() { saveLocal(); fbTouch(); }
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today = () => ymd(new Date());
+const addDays = (iso, n) => { const d = iso ? new Date(iso + 'T12:00:00') : new Date(); d.setDate(d.getDate() + n); return ymd(d); };
+const fmt = iso => iso ? iso.split('-').reverse().join('/') : '—';
+const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const bookById = id => db.books.find(b => b.id === id);
+const readerByName = n => { const k = norm(n || ''); return k ? db.readers.find(r => norm(r.name) === k) : null; };
+function ensureReader(name) { name = (name || '').trim(); if (!name) return null; return readerByName(name) || (db.readers.push({ id: uid(), name }), db.readers[db.readers.length - 1]); }
+function ensureReaders() { for (const r of db.reads) ensureReader(r.who); }
+const readsOf = bookId => db.reads.filter(r => r.bookId === bookId).sort((a, b) => b.date.localeCompare(a.date));
+/* Paginación: devuelve la parte visible de la lista y pinta los botones en #pg-<key> */
+function paginate(list, key) {
+  const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  PAGE[key] = Math.min(Math.max(0, PAGE[key]), pages - 1);
+  const p = PAGE[key];
+  $('pg-' + key).innerHTML = pages > 1 ? `<div class="pager"><button class="btn" ${p ? '' : 'disabled'} onclick="goPage('${key}',${p - 1})" aria-label="${tr('Anterior')}">‹</button>
+    <span>${tr('Página {p} de {n}', { p: p + 1, n: pages })} · ${list.length}</span>
+    <button class="btn" ${p < pages - 1 ? '' : 'disabled'} onclick="goPage('${key}',${p + 1})" aria-label="${tr('Siguiente')}">›</button></div>` : '';
+  return list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE);
+}
+function goPage(key, n) { PAGE[key] = n; render(); window.scrollTo(0, 0); }
+/* ---------- Idioma (español / galego): el texto en español es la clave ---------- */
+let LANG = 'es';
+const GL = {
+  "Buscar por título o autor…": "Buscar por título ou autor…",
+  "Buscar por libro, autor o persona…": "Buscar por libro, autor ou persoa…",
+  "Añadir libro": "Engadir libro",
+  "Nuevo préstamo": "Novo préstamo",
+  "Retrasado": "Atrasado",
+  "Devuelto": "Devolto",
+  "Disponible": "Dispoñible",
+  "Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.": "Este libro está prestado agora mesmo. Márcao como devolto antes de borralo.",
+  "¿Borrar este libro y su historial de préstamos?": "Queres borrar este libro e o seu historial de préstamos?",
+  "Hay más de un ejemplar con este título y autor": "Hai máis dun exemplar con este título e autor",
+  "Devolver el": "Devolver o",
+  "Marcar devuelto": "Marcar devolto",
+  "Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.": "Aínda non hai libros.<br>Preme <b>+</b> para engadir o primeiro.",
+  "con {who} · devolver el {date}": "con {who} · devolver o {date}",
+  "Todos los libros están prestados.": "Todos os libros están prestados.",
+  "Primero añade algún libro en la pestaña Libros.": "Primeiro engade algún libro na lapela Libros.",
+  "Fecha de préstamo": "Data do préstamo",
+  "y {n} más… sigue escribiendo": "e {n} máis… segue escribindo",
+  "Elige un libro de la lista.": "Elixe un libro da lista.",
+  "La devolución prevista no puede ser anterior al préstamo.": "A devolución prevista non pode ser anterior ao préstamo.",
+  "Marcar como devuelto": "Marcar como devolto",
+  "Fecha real de devolución": "Data real de devolución",
+  "¿Borrar este préstamo?": "Queres borrar este préstamo?",
+  "Retrasados": "Atrasados",
+  "Devueltos": "Devoltos",
+  "con {n} {u} de retraso": "con {n} {u} de atraso",
+  "⚠ {n} {u} de retraso": "⚠ {n} {u} de atraso",
+  "{n} {u} de retraso": "{n} {u} de atraso",
+  "Devuelto con {n} {u} de retraso": "Devolto con {n} {u} de atraso",
+  "Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.": "Aínda non hai préstamos.<br>Preme <b>+</b> para rexistrar o primeiro.",
+  "Nuevo archivo de datos": "Novo ficheiro de datos",
+  "Sincronizar archivo": "Sincronizar ficheiro",
+  "Reconectar archivo": "Reconectar ficheiro",
+  "Copia de seguridad (CSV, se abre en Excel)": "Copia de seguridade (CSV, ábrese en Excel)",
+  "Cerrar": "Pechar",
+  "💾 El archivo de datos está desconectado: los cambios no se guardan en él.": "💾 O ficheiro de datos está desconectado: os cambios non se gardan nel.",
+  "Aún no has hecho ninguna copia.": "Aínda non fixeches ningunha copia.",
+  "Última copia hace {n} días.": "Última copia hai {n} días.",
+  "🌙 Oscuro": "🌙 Escuro",
+  "📱 Móvil": "📱 Móbil",
+  "El CSV está vacío.": "O CSV está baleiro.",
+  "No se encontró una columna Título/Libro en la primera fila.": "Non se atopou unha columna Título/Libro na primeira fila.",
+  "Importado: {nb} libros nuevos, {nl} préstamos.": "Importado: {nb} libros novos, {nl} préstamos.",
+  "guardado": "gardado",
+  "Error al guardar en el archivo: ": "Erro ao gardar no ficheiro: ",
+  "No se pudo abrir el archivo: ": "Non se puido abrir o ficheiro: ",
+  "💾 Archivo reconectado: {n}. Los cambios se guardan en él automáticamente.": "💾 Ficheiro reconectado: {n}. Os cambios gárdanse nel automaticamente.",
+  "Error al reconectar: ": "Erro ao reconectar: ",
+  "Este navegador guarda los datos en el propio navegador. Usa «Exportar todo» de vez en cuando.": "Este navegador garda os datos no propio navegador. Usa «Exportar todo» de cando en vez.",
+  "Sin archivo vinculado (los datos se guardan en este navegador).": "Sen ficheiro ligado (os datos gárdanse neste navegador).",
+  "Archivo vinculado: {n} — pulsa «Reconectar archivo».": "Ficheiro ligado: {n} — preme «Reconectar ficheiro».",
+  "No se pudo leer el archivo vinculado: ": "Non se puido ler o ficheiro ligado: ",
+  "Colección": "Colección",
+  "opcional": "opcional",
+  "Lectores/as": "Lectores/as",
+  "Buscar lector/a o curso…": "Buscar lector/a ou curso…",
+  "Añadir lector/a": "Engadir lector/a",
+  "Editar lector/a": "Editar lector/a",
+  "Nombre": "Nome",
+  "Curso": "Curso",
+  "Borrar este lector/a…": "Borrar este lector/a…",
+  "Ya existe un lector/a con ese nombre.": "Xa existe un lector/a con ese nome.",
+  "Este lector/a tiene libros sin devolver. Márcalos como devueltos antes de borrarlo.": "Este lector/a ten libros sen devolver. Márcaos como devoltos antes de borralo.",
+  "¿Borrar este lector/a? Sus préstamos pasados se conservan.": "Queres borrar este lector/a? Os seus préstamos pasados consérvanse.",
+  "Ningún lector/a coincide.": "Ningún lector/a coincide.",
+  "Aún no hay lectores.<br>Pulsa <b>+</b> para añadir el primero.": "Aínda non hai lectores.<br>Preme <b>+</b> para engadir o primeiro.",
+  "Sin devolver": "Sen devolver",
+  "sin devolver": "sen devolver",
+  "Préstamos": "Préstamos",
+  "Fecha en que lo terminé de leer": "Data na que o rematei de ler",
+  "vacío = pendiente": "baleiro = pendente",
+  "Marcar como leído": "Marcar como lido",
+  "Marcar leído": "Marcar lido",
+  "Quitar lectura": "Quitar lectura",
+  "Leído": "Lido",
+  "Leído el": "Lido o",
+  "Pendiente": "Pendente",
+  "Pendientes": "Pendentes",
+  "Leídos": "Lidos",
+  "¿Borrar este libro?": "Queres borrar este libro?",
+  "Importado: {nb} libros nuevos.": "Importado: {nb} libros novos.",
+  "Buscar lector/a…": "Buscar lector/a…",
+  "Lecturas": "Lecturas",
+  "Añadir lectura": "Engadir lectura",
+  "Lector/a": "Lector/a",
+  "Sin lector/a": "Sen lector/a",
+  "Borrar esta lectura": "Borrar esta lectura",
+  "¿Borrar esta lectura?": "Queres borrar esta lectura?",
+  "y {n} más…": "e {n} máis…",
+  "Libros leídos": "Libros lidos",
+  "Última lectura": "Última lectura",
+  "¿Borrar este lector/a? Sus lecturas se conservan.": "Queres borrar este lector/a? As súas lecturas consérvanse.",
+  "Importado: {nb} libros nuevos, {nr} lecturas.": "Importado: {nb} libros novos, {nr} lecturas.",
+  "📊 Estadísticas": "📊 Estatísticas",
+  "Otros": "Outros",
+  "Sin datos todavía.": "Sen datos aínda.",
+  "El primero": "O primeiro",
+  "{n} lectura": "{n} lectura",
+  "{n} lecturas": "{n} lecturas",
+  "Estado de los libros": "Estado dos libros",
+  "Libros más leídos": "Libros máis lidos",
+  "Lectores/as con más lecturas": "Lectores/as con máis lecturas",
+  "Autores más leídos": "Autores/as máis lidos/as",
+  "Colecciones más leídas": "Coleccións máis lidas",
+  "Años con más lecturas": "Anos con máis lecturas",
+  "No hay conexión con Firebase.": "Non hai conexión con Firebase.",
+  "Datos remotos ilegibles.": "Datos remotos ilexibles.",
+  "Sincronizado": "Sincronizado",
+  "No se pudo sincronizar (se reintentará): ": "Non se puido sincronizar (reintentarase): ",
+  "Conectando con Firebase…": "Conectando con Firebase…",
+  "No se encontró apiKey y projectId en la configuración pegada.": "Non se atopou apiKey e projectId na configuración pegada.",
+  "El código debe tener al menos 16 letras o números (sin espacios).": "O código debe ter polo menos 16 letras ou números (sen espazos).",
+  "Sin sincronizar (los datos solo están en este navegador).": "Sen sincronizar (os datos só están neste navegador).",
+  "Sincronización entre dispositivos (Firebase)": "Sincronización entre dispositivos (Firebase)",
+  "Cómo configurarlo": "Como configuralo",
+  "En console.firebase.google.com crea un proyecto y una base de datos Firestore.": "En console.firebase.google.com crea un proxecto e unha base de datos Firestore.",
+  "En Reglas pega: match /libros/{doc} { allow get, create, update: if true; } (sin «list», nadie puede listar los documentos).": "En Regras pega: match /libros/{doc} { allow get, create, update: if true; } (sen «list», ninguén pode listar os documentos).",
+  "En Configuración del proyecto → Tus apps → Web copia la configuración (firebaseConfig) y pégala aquí abajo.": "En Configuración do proxecto → As túas apps → Web copia a configuración (firebaseConfig) e pégaa aquí abaixo.",
+  "En cada dispositivo pega la misma configuración y el mismo código secreto.": "En cada dispositivo pega a mesma configuración e o mesmo código secreto.",
+  "Configuración de Firebase": "Configuración de Firebase",
+  "Ya configurada: pega otra para cambiarla": "Xa configurada: pega outra para cambiala",
+  "Código secreto de sincronización": "Código secreto de sincronización",
+  "Vacío = se genera uno": "Baleiro = xérase un",
+  "Conectar": "Conectar",
+  "Desconectar": "Desconectar",
+  "Rosca": "Rosca",
+  "Barras": "Barras",
+  "Tabla": "Táboa",
+  "Total": "Total",
+  "Anterior": "Anterior",
+  "Datos opcionales": "Datos opcionais",
+  "Libro nuevo": "Libro novo",
+  "Lector/a nuevo/a": "Lector/a novo/a",
+  "Siguiente": "Seguinte",
+  "Página {p} de {n}": "Páxina {p} de {n}",
+  "Crear «{t}» como libro nuevo": "Crear «{t}» como libro novo",
+  "(libro nuevo)": "(libro novo)"
+};
+const tr = (k, v) => { let r = (LANG === 'gl' && GL[k]) || k; if (v) for (const x in v) r = r.split('{' + x + '}').join(v[x]); return r; };
+/* ---------- Ventanas propias (el móvil bloquea alert/confirm/prompt) ---------- */
+function openSheet(html) { $('sheetBody').innerHTML = html; $('sheet').classList.add('open'); }
+function closeSheet() { $('sheet').classList.remove('open'); }
+function dlgAlert(msg) {
+  openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn primary" onclick="closeSheet()">${tr('Aceptar')}</button></div>`);
+}
+function dlgConfirm(msg, okText = tr('Aceptar')) {
+  return new Promise(res => {
+    openSheet(`<p>${esc(msg)}</p><div class="btns"><button class="btn" id="dNo">${tr('Cancelar')}</button><button class="btn primary" id="dYes">${esc(okText)}</button></div>`);
+    $('dNo').onclick = () => { closeSheet(); res(false); };
+    $('dYes').onclick = () => { closeSheet(); res(true); };
+  });
+}
+
+/* ---------- Navegación ---------- */
+let lastTab = 'books';
+function show(t) {
+  tab = t; if (t !== 'stats') lastTab = t;
+  for (const x of ['books', 'readers', 'stats']) { $(x).classList.toggle('hidden', x !== t); if (x !== 'stats') $('t-' + x).classList.toggle('on', x === t); }
+  $('statsBtn').classList.toggle('on', t === 'stats');
+  $('fab').classList.toggle('hidden', t === 'stats');
+  $('fab').setAttribute('aria-label', fabLabel());
+  if (t === 'stats') renderStats();
+  window.scrollTo(0, 0);
+}
+const toggleStats = () => show(tab === 'stats' ? lastTab : 'stats');
+const fabLabel = () => tab === 'books' ? tr('Añadir libro') : tab === 'readers' ? tr('Añadir lector/a') : '';
+function addAction() { tab === 'books' ? bookSheet() : tab === 'readers' ? readerSheet() : 0; }
+
+/* ---------- Libros ---------- */
+function bookSheet(id) {
+  const b = id ? bookById(id) : null, rs = b ? readsOf(b.id) : [];
+  openSheet(`<h2>${b ? tr('Editar libro') : tr('Añadir libro')}</h2>
+    <form id="bf">
+      <div class="f"><label>${tr('Título')} *</label><input id="bTitle" required autocomplete="off" value="${esc(b?.title || '')}"></div>
+      <div class="f"><label>${tr('Autor')}</label><input id="bAuthor" autocomplete="off" value="${esc(b?.author || '')}"></div>
+      <div class="f"><label>${tr('Colección')} <small>(${tr('opcional')})</small></label><input id="bColl" autocomplete="off" value="${esc(b?.collection || '')}"></div>
+      <div class="f"><label>${tr('ISBN / Notas')}</label><input id="bNote" autocomplete="off" value="${esc(b?.note || '')}"></div>
+      ${b ? `<div class="sec" style="margin-top:6px">${tr('Lecturas')}</div>
+        ${rs.map(r => `<div class="rd"><span>${fmt(r.date)} · ${esc(r.who) || tr('Sin lector/a')}</span><button type="button" onclick="delRead('${r.id}','${b.id}')" aria-label="${tr('Borrar esta lectura')}">✕</button></div>`).join('')}
+        <div class="btns"><button type="button" class="btn sm" onclick="readSheet('${b.id}')">＋ ${tr('Añadir lectura')}</button></div>` : ''}
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      ${b ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delBook('${b.id}')">${tr('Borrar este libro…')}</button></div>` : ''}
+    </form>`);
+  $('bf').onsubmit = e => {
+    e.preventDefault();
+    const d = { title: $('bTitle').value.trim(), author: $('bAuthor').value.trim(), collection: $('bColl').value.trim(), note: $('bNote').value.trim() };
+    if (b) Object.assign(b, d); else db.books.push({ id: uid(), ...d });
+    save(); closeSheet(); render();
+  };
+  setTimeout(() => $('bTitle')?.focus(), 50);
+}
+function readSheet(bookId) {   // una lectura = persona (opcional) + fecha en que terminó el libro
+  const b = bookById(bookId), people = db.readers.map(r => r.name).sort((a, c) => a.localeCompare(c, 'es'));
+  openSheet(`<h2>${tr('Marcar como leído')}</h2>
+    <p class="sub" style="margin-top:-8px">${esc(b.title)}</p>
+    <form id="rf">
+      <div class="f"><label>${tr('Lector/a')} <small>(${tr('opcional')})</small></label><input id="rWho" list="rpeople" autocomplete="off" value="${people.length === 1 ? esc(people[0]) : ''}"><datalist id="rpeople">${people.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
+      <div class="f"><label>${tr('Fecha en que lo terminé de leer')}</label><input id="rDate" type="date" required value="${today()}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Confirmar')}</button></div></form>`);
+  $('rf').onsubmit = e => {
+    e.preventDefault();
+    const who = $('rWho').value.trim(); ensureReader(who);   // alta automática del lector/a
+    db.reads.push({ id: uid(), bookId, who, date: $('rDate').value });
+    save(); closeSheet(); render();
+  };
+}
+async function delRead(id, bookId) {
+  if (!await dlgConfirm(tr('¿Borrar esta lectura?'), tr('Borrar'))) return;
+  db.reads = db.reads.filter(r => r.id !== id); save(); render(); bookSheet(bookId);
+}
+async function delBook(id) {
+  if (!await dlgConfirm(tr('¿Borrar este libro?'), tr('Borrar'))) return;
+  db.books = db.books.filter(b => b.id !== id); db.reads = db.reads.filter(r => r.bookId !== id);
+  save(); closeSheet(); render();
+}
+const dupKey = b => norm(b.title) + '|' + norm(b.author);
+const uniqNames = rs => [...new Set(rs.map(r => r.who).filter(Boolean))];
+function renderBooks() {
+  $('pg-books').innerHTML = '';
+  const dupCount = {}; for (const b of db.books) dupCount[dupKey(b)] = (dupCount[dupKey(b)] || 0) + 1;
+  const dup = b => dupCount[dupKey(b)] > 1 ? ` <span class="dup" title="${tr('Hay más de un ejemplar con este título y autor')}">${tr('duplicado')}</span>` : '';
+  const RS = {}; for (const b of db.books) RS[b.id] = readsOf(b.id);
+  const is = (b, f) => !f || (f === 'read' ? RS[b.id].length > 0 : RS[b.id].length === 0);
+  const count = f => db.books.filter(b => is(b, f)).length;
+  $('chips').innerHTML = [['', tr('Todos')], ['pending', tr('Pendientes')], ['read', tr('Leídos')]]
+    .map(([k, n]) => `<button class="chip ${rFilter === k ? 'on' : ''}" onclick="rFilter='${k}';PAGE.books=0;renderBooks()">${n} (${count(k)})</button>`).join('');
+  const q = norm($('bSearch').value);
+  const list = db.books.filter(b => is(b, rFilter) && norm(b.title + ' ' + b.author + ' ' + (b.collection || '') + ' ' + b.note + ' ' + uniqNames(RS[b.id]).join(' ')).includes(q));
+  const empty = `<div class="empty">${db.books.length ? tr('Ningún libro coincide.') : tr('Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`;
+  if (!list.length) { $('bookList').innerHTML = empty; return; }
+  const badge = b => RS[b.id].length ? `<span class="badge b-avail">${tr('Leído')}</span>` : `<span class="badge b-loaned">${tr('Pendiente')}</span>`;
+  const act = (b, sm) => `<button class="btn ${RS[b.id].length ? '' : 'primary'} ${sm}" onclick="readSheet('${b.id}')">${tr('Marcar leído')}</button>`;
+  if (isDesk()) {
+    const val = { title: b => b.title, author: b => b.author, collection: b => b.collection, note: b => b.note, read: b => RS[b.id][0]?.date || '', who: b => uniqNames(RS[b.id]).join(', ') };
+    const g = val[SORT.books.k];
+    const rows = paginate([...list].sort((a, b) => SORT.books.d * cmp(g(a), g(b)) || a.title.localeCompare(b.title)), 'books');
+    $('bookList').innerHTML = `<div class="tw"><table class="tbl"><thead><tr>
+      ${th('books','title',tr('Título'))}${th('books','author',tr('Autor'))}${th('books','collection',tr('Colección'))}${th('books','note',tr('ISBN / Notas'))}${th('books','read',tr('Leído el'))}${th('books','who',tr('Lectores/as'))}<th></th></tr></thead><tbody>
+      ${rows.map(b => { const rs = RS[b.id]; return `<tr class="click" onclick="bookSheet('${b.id}')" title="${tr('Editar')}"><td><b>${esc(b.title)}</b>${dup(b)}</td><td>${esc(b.author)}</td><td>${esc(b.collection)}</td><td>${esc(b.note)}</td>
+        <td>${rs.length ? fmt(rs[0].date) + (rs.length > 1 ? ` <span class="sub" style="display:inline">(${rs.length})</span>` : '') : badge(b)}</td><td>${esc(uniqNames(rs).join(', '))}</td><td class="r" onclick="event.stopPropagation()">${act(b, 'sm')}</td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    return;
+  }
+  $('bookList').innerHTML = paginate([...list].sort((a, b) => a.title.localeCompare(b.title)), 'books').map(b => { const rs = RS[b.id]; return `<div class="item">
+      <div class="row"><div class="grow click" onclick="bookSheet('${b.id}')"><div class="t">${esc(b.title)}${dup(b)}</div>
+        <div class="sub">${esc([b.author, b.collection, b.note].filter(Boolean).join(' · ')) || '&nbsp;'}</div>
+        ${rs.slice(0, 3).map(r => `<div class="sub">${tr('Leído el')} ${fmt(r.date)}${r.who ? ' · ' + esc(r.who) : ''}</div>`).join('')}${rs.length > 3 ? `<div class="sub">${tr('y {n} más…', { n: rs.length - 3 })}</div>` : ''}</div>${badge(b)}</div>
+      <div class="acts">${act(b, '')}</div>
+    </div>`; }).join('');
+}
+
+/* ---------- Lectores/as ---------- */
+function readerStats(r) { const rs = db.reads.filter(x => norm(x.who) === norm(r.name)).sort((a, b) => b.date.localeCompare(a.date)); return { books: new Set(rs.map(x => x.bookId)).size, last: rs[0]?.date || '' }; }
+function readerSheet(id) {
+  const r = id ? db.readers.find(x => x.id === id) : null;
+  openSheet(`<h2>${r ? tr('Editar lector/a') : tr('Añadir lector/a')}</h2>
+    <form id="rdf">
+      <div class="f"><label>${tr('Nombre')} *</label><input id="rName" required autocomplete="off" value="${esc(r?.name || '')}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      ${r ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delReader('${r.id}')">${tr('Borrar este lector/a…')}</button></div>` : ''}
+    </form>`);
+  $('rdf').onsubmit = e => {
+    e.preventDefault();
+    const name = $('rName').value.trim(), ex = readerByName(name);
+    if (ex && ex !== r) return dlgAlert(tr('Ya existe un lector/a con ese nombre.'));
+    if (r) { for (const x of db.reads) if (norm(x.who) === norm(r.name)) x.who = name; r.name = name; }
+    else db.readers.push({ id: uid(), name });
+    save(); closeSheet(); render();
+  };
+  setTimeout(() => $('rName')?.focus(), 50);
+}
+async function delReader(id) {
+  if (!await dlgConfirm(tr('¿Borrar este lector/a? Sus lecturas se conservan.'), tr('Borrar'))) return;
+  db.readers = db.readers.filter(x => x.id !== id); save(); closeSheet(); render();
+}
+function renderReaders() {
+  $('pg-readers').innerHTML = '';
+  const q = norm($('rSearch').value);
+  const list = db.readers.filter(r => norm(r.name).includes(q));
+  if (!list.length) { $('readerList').innerHTML = `<div class="empty">${db.readers.length ? tr('Ningún lector/a coincide.') : tr('Aún no hay lectores.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`; return; }
+  if (isDesk()) {
+    const val = { name: r => r.name, books: r => readerStats(r).books, last: r => readerStats(r).last };
+    const g = val[SORT.readers.k], num = SORT.readers.k === 'books';
+    const rows = paginate([...list].sort((a, b) => SORT.readers.d * (num ? g(a) - g(b) : cmp(g(a), g(b)))), 'readers');
+    $('readerList').innerHTML = `<div class="tw"><table class="tbl"><thead><tr>${th('readers','name',tr('Nombre'))}${th('readers','books',tr('Libros leídos'))}${th('readers','last',tr('Última lectura'))}</tr></thead><tbody>
+      ${rows.map(r => { const st = readerStats(r); return `<tr class="click" onclick="readerSheet('${r.id}')" title="${tr('Editar')}"><td><b>${esc(r.name)}</b></td><td>${st.books}</td><td>${st.last ? fmt(st.last) : ''}</td></tr>`; }).join('')}</tbody></table></div>`;
+    return;
+  }
+  $('readerList').innerHTML = paginate([...list].sort((a, b) => cmp(a.name, b.name)), 'readers').map(r => { const st = readerStats(r);
+    return `<div class="item click" onclick="readerSheet('${r.id}')"><div class="row"><div class="grow"><div class="t">${esc(r.name)}</div>
+      <div class="sub">${tr('Libros leídos')}: ${st.books}${st.last ? ' · ' + tr('Última lectura') + ': ' + fmt(st.last) : ''}</div></div></div></div>`; }).join('');
+}
+
+/* ---------- Estadísticas ---------- */
+const PALETTE = ['#3f7d1f', '#2f7fc1', '#d98a00', '#b5446e', '#7a5cc7'], OTHER_COLOR = '#8a8f98';
+function topN(map, n = 5) {   // map: clave → {label, n}; devuelve los n primeros + «Otros»
+  const all = Object.values(map).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, 'es'));
+  const items = all.slice(0, n).map((x, i) => ({ ...x, color: PALETTE[i] }));
+  const rest = all.slice(n).reduce((t, x) => t + x.n, 0);
+  if (rest) items.push({ label: tr('Otros'), n: rest, color: OTHER_COLOR });
+  return items;
+}
+let STATVIEW = 'donut'; try { STATVIEW = localStorage.getItem('libros.statview') || 'donut'; } catch {}
+function setStatView(v) { STATVIEW = v; try { localStorage.setItem('libros.statview', v); } catch {} renderStats(); }
+const statToggle = () => `<div class="chips" style="justify-content:flex-start">${[['donut', '◔ ' + tr('Rosca')], ['bars', '▤ ' + tr('Barras')], ['table', '☷ ' + tr('Tabla')]]
+  .map(([k, n]) => `<button class="chip ${STATVIEW === k ? 'on' : ''}" onclick="setStatView('${k}')">${n}</button>`).join('')}</div>`;
+function statCard(title, items, lead) {
+  const total = items.reduce((t, x) => t + x.n, 0);
+  if (!total) return `<div class="scard"><h3>${title}</h3><div class="lead"></div><div class="sub">${tr('Sin datos todavía.')}</div></div>`;
+  const pc = x => Math.round(x.n / total * 100);
+  let body;
+  if (STATVIEW === 'bars') {
+    const max = Math.max(...items.map(x => x.n));
+    body = `<div class="bars">${items.map(x => `<div class="brow"><div class="bhead"><span class="lg">${esc(x.label)}</span><b>${x.n} <small>${pc(x)}%</small></b></div><div class="bt"><div class="bf" style="width:${x.n / max * 100}%;background:${x.color}"></div></div></div>`).join('')}</div>`;
+  } else if (STATVIEW === 'table') {
+    body = `<table class="tbl stbl"><tbody>${items.map(x => `<tr><td><i style="background:${x.color}"></i>${esc(x.label)}</td><td class="r"><b>${x.n}</b></td><td class="r sub">${pc(x)}%</td></tr>`).join('')}
+      <tr><td><b>${tr('Total')}</b></td><td class="r"><b>${total}</b></td><td></td></tr></tbody></table>`;
+  } else {
+    let off = 0;
+    const arcs = items.map(x => { const p = x.n / total * 100, c = `<circle r="15.915" cx="21" cy="21" fill="none" stroke="${x.color}" stroke-width="6" stroke-dasharray="${p} ${100 - p}" stroke-dashoffset="${-off}"><title>${esc(x.label)}: ${x.n}</title></circle>`; off += p; return c; }).join('');
+    body = `<div class="body"><svg class="donut" viewBox="0 0 42 42" role="img" aria-label="${title}">${arcs}<text x="21" y="22.5">${total}</text></svg>
+    <ul class="legend">${items.map(x => `<li><i style="background:${x.color}"></i><span class="lg" title="${esc(x.label)}">${esc(x.label)}</span><b>${x.n}</b><small>${pc(x)}%</small></li>`).join('')}</ul></div>`;
+  }
+  return `<div class="scard"><h3>${title}</h3><div class="lead">${lead || ''}</div>${body}</div>`;
+}
+function renderStats() {
+  if (tab !== 'stats') return;
+  const reads = db.reads, add = (m, k, label) => { if (!k) return; (m[k] = m[k] || { label, n: 0 }).n++; };
+  const byBook = {}, byReader = {}, byAuthor = {}, byColl = {}, byYear = {};
+  for (const r of reads) {
+    const b = bookById(r.bookId); if (!b) continue;
+    add(byBook, dupKey(b), b.title);
+    add(byReader, norm(r.who), readerByName(r.who)?.name || r.who);
+    add(byAuthor, norm(b.author), b.author);
+    if (b.collection) add(byColl, norm(b.collection), b.collection);
+    add(byYear, r.date.slice(0, 4), r.date.slice(0, 4));
+  }
+  const lead = items => items.length && items[0].color !== OTHER_COLOR ? `${tr('El primero')}: <b>${esc(items[0].label)}</b> (${tr(items[0].n === 1 ? '{n} lectura' : '{n} lecturas', { n: items[0].n })})` : '';
+  const books = topN(byBook), readers = topN(byReader), authors = topN(byAuthor), colls = topN(byColl), years = topN(byYear);
+  const readIds = new Set(reads.map(r => r.bookId)), nRead = db.books.filter(b => readIds.has(b.id)).length;
+  const state = [{ label: tr('Leídos'), n: nRead, color: 'var(--ok)' }, { label: tr('Pendientes'), n: db.books.length - nRead, color: 'var(--loan)' }].filter(x => x.n);
+  $('stats').innerHTML = statToggle() + `<div class="kpis">
+      <div class="kpi"><b>${db.books.length}</b><span>${tr('Libros')}</span></div>
+      <div class="kpi"><b>${nRead}</b><span>${tr('Leídos')}</span></div>
+      <div class="kpi"><b>${db.books.length - nRead}</b><span>${tr('Pendientes')}</span></div>
+      <div class="kpi"><b>${reads.length}</b><span>${tr('Lecturas')}</span></div></div>
+    <div class="stats">
+      ${statCard(tr('Estado de los libros'), state, '')}
+      ${statCard(tr('Libros más leídos'), books, lead(books))}
+      ${statCard(tr('Lectores/as con más lecturas'), readers, lead(readers))}
+      ${statCard(tr('Autores más leídos'), authors, lead(authors))}
+      ${statCard(tr('Colecciones más leídas'), colls, lead(colls))}
+      ${statCard(tr('Años con más lecturas'), years, lead(years))}
+    </div>`;
+}
+
+/* ---------- Sincronización con Firebase (opcional; sin login, el documento se protege con un código secreto largo) ----------
+   Los datos siguen guardándose siempre en el navegador; Firebase es una copia sincronizada entre dispositivos.
+   Un único documento libros/<código> = { data: JSON de db, rev: ms }. Cambios en dos sitios a la vez: se unen (no se pierde nada;
+   un borrado hecho en un dispositivo puede reaparecer si el otro tenía cambios sin sincronizar). */
+const FBK = 'libros.fb', FBM = 'libros.fbmeta', FBV = '10.12.2';
+let fb = null, fbDoc = null, fbUnsub = null, fbPushT = null, fbMsg = () => '', fbErr = false;
+try { fb = JSON.parse(localStorage.getItem(FBK)); } catch {}
+const fbMeta = () => { try { return JSON.parse(localStorage.getItem(FBM)) || {}; } catch { return {}; } };
+const setMeta = o => { try { localStorage.setItem(FBM, JSON.stringify({ ...fbMeta(), ...o })); } catch {} };
+function fbStatus(fn, err) { fbMsg = fn; fbErr = !!err; const e = $('fbStatus'); if (e) { e.textContent = fn(); e.classList.toggle('err', !!err); } }
+function fbTouch() { if (!fb) return; setMeta({ dirty: true }); clearTimeout(fbPushT); fbPushT = setTimeout(() => fbDoc ? fbPush() : fbStart(), 800); }
+function fbLoadSdk() {
+  if (window.firebase && firebase.firestore) return Promise.resolve();
+  const load = f => new Promise((res, rej) => { const t = document.createElement('script'); t.src = `https://www.gstatic.com/firebasejs/${FBV}/${f}`; t.onload = res; t.onerror = () => rej(new Error(tr('No hay conexión con Firebase.'))); document.head.appendChild(t); });
+  return load('firebase-app-compat.js').then(() => load('firebase-firestore-compat.js'));
+}
+function fbMerge(local, remote) {   // une lo remoto con lo local sin borrar nada
+  remote = normDb(remote);
+  const ids = k => new Set(local[k].map(x => x.id));
+  for (const k of ['books', 'reads']) { const have = ids(k); for (const x of remote[k]) if (!have.has(x.id)) local[k].push(x); }
+  for (const r of remote.readers) if (!local.readers.some(x => norm(x.name) === norm(r.name))) local.readers.push(r);
+}
+function fbRemote(snap) {
+  if (snap.metadata && snap.metadata.hasPendingWrites) return;   // eco de nuestra propia escritura
+  const m = fbMeta(), r = snap.exists ? snap.data() : null;
+  if (!r) { fbPush(); return; }   // documento nuevo: se siembra con los datos locales
+  if (r.rev === m.rev) { fbOk(); if (m.dirty) fbPush(); return; }
+  let remote; try { remote = JSON.parse(r.data); } catch { return fbStatus(() => tr('Datos remotos ilegibles.'), true); }
+  if (m.dirty) { fbMerge(db, remote); setMeta({ rev: r.rev }); saveLocal(); render(); fbPush(); }   // cambios en los dos lados: se unen
+  else { db = normDb(remote); setMeta({ rev: r.rev, dirty: false }); saveLocal(); render(); fbOk(); }
+}
+const fbOk = () => { const hm = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }); fbStatus(() => '☁ ' + tr('Sincronizado') + ' ' + hm); };
+async function fbPush() {
+  if (!fbDoc) return;
+  const rev = Date.now(); setMeta({ rev, dirty: false });   // antes de enviar, para no confundir el eco con un cambio remoto
+  try { await fbDoc.set({ data: JSON.stringify(db), rev }); fbOk(); }
+  catch (e) { setMeta({ dirty: true }); fbStatus(() => tr('No se pudo sincronizar (se reintentará): ') + e.message, true); }
+}
+async function fbStart() {
+  if (!fb) return;
+  fbStatus(() => tr('Conectando con Firebase…'));
+  try {
+    await fbLoadSdk();
+    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(fb.config);
+    fbDoc = firebase.firestore(app).collection('libros').doc(fb.code);
+    if (fbUnsub) fbUnsub();
+    fbUnsub = fbDoc.onSnapshot(fbRemote, e => fbStatus(() => tr('No se pudo sincronizar (se reintentará): ') + e.message, true));
+  } catch (e) { fbDoc = null; fbStatus(() => e.message, true); }
+}
+function fbParse(txt) {   // acepta el JSON o el objeto JS que da la consola de Firebase, sin ejecutar nada
+  const c = {}; for (const [, k, v] of txt.matchAll(/["']?(\w+)["']?\s*:\s*["']([^"']*)["']/g)) c[k] = v;
+  return c.apiKey && c.projectId ? c : null;
+}
+function fbConnect() {
+  const old = fb, txt = $('fbCfg').value.trim();
+  const config = txt ? fbParse(txt) : old?.config;
+  if (!config) return dlgAlert(tr('No se encontró apiKey y projectId en la configuración pegada.'));
+  let code = $('fbCode').value.trim();
+  if (!code) code = Array.from(crypto.getRandomValues(new Uint8Array(24)), b => 'abcdefghijkmnpqrstuvwxyz23456789'[b % 32]).join('');
+  if (!/^[A-Za-z0-9_-]{16,}$/.test(code)) return dlgAlert(tr('El código debe tener al menos 16 letras o números (sin espacios).'));
+  if (fbUnsub) { fbUnsub(); fbUnsub = null; } fbDoc = null;
+  fb = { config, code };
+  try { localStorage.setItem(FBK, JSON.stringify(fb)); } catch {}
+  setMeta({ rev: 0, dirty: true });   // primera conexión: los datos locales se unen con los remotos
+  fbStart().then(() => { if ($('fbCode')) dataSheet(); renderBanner(); });
+  dataSheet();
+}
+function fbOff() {
+  if (fbUnsub) { fbUnsub(); fbUnsub = null; } fbDoc = null; fb = null;
+  try { localStorage.removeItem(FBK); localStorage.removeItem(FBM); } catch {}
+  fbStatus(() => tr('Sin sincronizar (los datos solo están en este navegador).')); renderBanner(); dataSheet();
+}
+window.addEventListener('online', () => { if (fb && fbMeta().dirty) fbTouch(); });
+const fbSection = () => `<div class="sec">${tr('Sincronización entre dispositivos (Firebase)')}</div>
+    <div id="fbStatus" class="fstat ${fbErr ? 'err' : ''}">${esc(fbMsg() || (fb ? '' : tr('Sin sincronizar (los datos solo están en este navegador).')))}</div>
+    <details style="margin-bottom:10px"><summary class="sub" style="cursor:pointer">${tr('Cómo configurarlo')}</summary>
+      <ol class="sub" style="padding-left:20px;margin:8px 0">
+        <li>${tr('En console.firebase.google.com crea un proyecto y una base de datos Firestore.')}</li>
+        <li>${tr('En Reglas pega: match /libros/{doc} { allow get, create, update: if true; } (sin «list», nadie puede listar los documentos).')}</li>
+        <li>${tr('En Configuración del proyecto → Tus apps → Web copia la configuración (firebaseConfig) y pégala aquí abajo.')}</li>
+        <li>${tr('En cada dispositivo pega la misma configuración y el mismo código secreto.')}</li></ol></details>
+    <div class="f"><label>${tr('Configuración de Firebase')} ${fb ? '(' + esc(fb.config.projectId) + ')' : ''}</label><textarea id="fbCfg" rows="3" autocomplete="off" spellcheck="false" placeholder="${fb ? tr('Ya configurada: pega otra para cambiarla') : '{ apiKey: &quot;…&quot;, projectId: &quot;…&quot;, … }'}"></textarea></div>
+    <div class="f"><label>${tr('Código secreto de sincronización')}</label><input id="fbCode" autocomplete="off" spellcheck="false" value="${esc(fb?.code || '')}" placeholder="${tr('Vacío = se genera uno')}"></div>
+    <div class="two"><button class="btn sm primary" onclick="fbConnect()">${tr('Conectar')}</button><button class="btn sm danger" onclick="fbOff()">${tr('Desconectar')}</button></div>`;
+
+/* ---------- Panel de datos ---------- */
+let fileMsg = '', fileMsgFn = null, fileErr = false;
+// t puede ser una función, así el mensaje se vuelve a traducir al cambiar de idioma
+function fstat(t, err) { fileMsgFn = typeof t === 'function' ? t : null; fileMsg = fileMsgFn ? fileMsgFn() : t; fileErr = !!err; const e = $('fileStatus'); if (e) { e.textContent = fileMsg; e.classList.toggle('err', !!err); } }
+function dataSheet() {
+  openSheet(`<h2>${tr('Datos')}</h2>
+    <div id="fileStatus" class="fstat ${fileErr ? 'err' : ''}">${esc(fileMsg)}</div>
+    ${FS ? `<div class="two">
+      <button class="btn sm" onclick="newFile()">${tr('Nuevo archivo de datos')}</button>
+      <button class="btn sm" onclick="openFile()">${tr('Sincronizar archivo')}</button></div>
+      <div class="stack" style="margin-top:8px"><button class="btn block ${needReconnect ? '' : 'hidden'}" onclick="reconnect()">${tr('Reconectar archivo')}</button></div>` : ''}
+    <div class="sec">${tr('Copia de seguridad (CSV, se abre en Excel)')}</div>
+    <div class="two">
+      <button class="btn sm" onclick="exportCSV()">${tr('Exportar todo')}</button>
+      <button class="btn sm" onclick="$('csvIn').click()">${tr('Importar CSV')}</button></div>
+    ${fbSection()}
+    <div class="sec">${tr('Idioma')}</div>
+    <div class="two"><button class="btn ${LANG === 'es' ? 'primary' : ''}" onclick="setLang('es')">Castellano</button><button class="btn ${LANG === 'gl' ? 'primary' : ''}" onclick="setLang('gl')">Galego</button></div>
+    <div class="btns"><button class="btn primary" onclick="closeSheet()">${tr('Cerrar')}</button></div>`);
+}
+/* ---------- CSV (se abre en Excel) ---------- */
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+const ALIASES = {
+  collection: ['collection','coleccion','serie','coleccion/serie'],
+  course: ['course','curso','clase','grupo'],
+  who: ['lector','lectora','lector/a','lectores','persona','persoa','reader','who','leido por','lido por','quien'],
+  read: ['fecha lectura','fecha de lectura','fecha fin lectura','leido','read','read date','finished','data lectura','data de lectura','lido','fecha fin','fin lectura'],
+  title: ['title','titulo','libro','book','nombre','name'],
+  author: ['author','autor'],
+  note: ['notes','note','notas','nota','isbn','isbn / notes','isbn / notas','observaciones'],
+  id: ['id','id libro','identificador']
+};
+function colMap(header) {
+  const h = header.map(norm), m = {};
+  for (const [k, names] of Object.entries(ALIASES)) { const i = h.findIndex(x => names.includes(x)); if (i >= 0) m[k] = i; }
+  return m;
+}
+function parseCSV(text) {
+  text = text.replace(/^﻿/, '');
+  let lines = text.split(/\r?\n/);
+  if (/^sep=/i.test(lines[0])) lines.shift();
+  text = lines.join('\n');
+  const first = text.split('\n')[0];
+  const delim = [';', ',', '\t'].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function toISO(v) {   // acepta AAAA-MM-DD o DD/MM/AAAA (día primero)
+  v = String(v || '').trim(); if (!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = v.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/);
+  if (m) { const y = m[3].length === 2 ? '20' + m[3] : m[3]; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  return '';
+}
+const csvCell = v => /[",;\n\r]/.test(v ?? '') ? '"' + String(v).replace(/"/g, '""') + '"' : String(v ?? '');
+function csvText() {   // una fila por lectura; libros sin lecturas, una fila con lector y fecha vacíos
+  const rows = [['Título','Autor','Colección','Notas','Lector','Fecha lectura','ID']];
+  for (const b of db.books) {
+    const rs = readsOf(b.id).reverse();
+    if (!rs.length) rows.push([b.title, b.author, b.collection || '', b.note, '', '', b.id]);
+    for (const r of rs) rows.push([b.title, b.author, b.collection || '', b.note, r.who, r.date, b.id]);
+  }
+  const used = new Set(db.reads.map(r => norm(r.who)));   // lectores sin lecturas: fila propia, sin título
+  for (const r of db.readers) if (!used.has(norm(r.name))) rows.push(['', '', '', '', r.name, '', '']);
+  return 'sep=,\r\n' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+}
+function exportCSV() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csvText()], { type: 'text/csv;charset=utf-8' }));
+  a.download = `libros-${today()}.csv`; a.click();
+  try { localStorage.setItem('libros.lastBackup', String(Date.now())); } catch {}
+  renderBanner();
+}
+/* Fusiona un CSV con los datos actuales (libros por ID, o por título+autor sin ID; lecturas sin duplicar). Devuelve {nb, nr} o {err}. */
+function importText(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return { err: tr('El CSV está vacío.') };
+  const m = colMap(rows[0]);
+  if (m.title === undefined) return { err: tr('No se encontró una columna Título/Libro en la primera fila.') };
+  const claimed = new Set();
+  let nb = 0, nr = 0;
+  const cell = (row, k) => (m[k] !== undefined ? (row[m[k]] || '').trim() : '');
+  for (const row of rows.slice(1)) {
+    const title = cell(row, 'title'), who = cell(row, 'who'), date = toISO(cell(row, 'read'));
+    if (!title) { if (who) ensureReader(who); continue; }   // fila solo de lector/a
+    const bid = cell(row, 'id'), hasRead = !!date;
+    let b = bid ? db.books.find(x => x.id === bid) : null;
+    if (!b && !bid) {   // sin ID (Excel a mano): puede haber ejemplares repetidos
+      const same = db.books.filter(x => norm(x.title) === norm(title) && norm(x.author) === norm(cell(row, 'author')));
+      b = hasRead ? same[0] : same.find(x => !claimed.has(x.id));
+      if (b && !hasRead) claimed.add(b.id);
+    }
+    if (!b) { b = { id: bid || uid(), title, author: cell(row, 'author'), collection: cell(row, 'collection'), note: cell(row, 'note') }; db.books.push(b); nb++; if (!bid && !hasRead) claimed.add(b.id); }
+    ensureReader(who);
+    if (hasRead && !db.reads.some(r => r.bookId === b.id && norm(r.who) === norm(who) && r.date === date)) { db.reads.push({ id: uid(), bookId: b.id, who, date }); nr++; }
+  }
+  return { nb, nr };
+}
+function importCSV(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const res = importText(r.result);
+    if (res.err) return dlgAlert(res.err);
+    save(); render();
+    dlgAlert(tr('Importado: {nb} libros nuevos, {nr} lecturas.', { nb: res.nb, nr: res.nr }));
+  };
+  r.readAsText(file); e.target.value = '';
+}
+
+/* ---------- Archivo de datos en disco (Chrome / Edge, ordenador) ---------- */
+let fileHandle = null, needReconnect = false;
+const FS = 'showSaveFilePicker' in window;
+const idb = () => new Promise((res, rej) => { const q = indexedDB.open('libros-fs', 1); q.onupgradeneeded = () => q.result.createObjectStore('h'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+async function idbSet(v) { const d = await idb(); return new Promise((res, rej) => { const t = d.transaction('h', 'readwrite'); t.objectStore('h').put(v, 'handle'); t.oncomplete = res; t.onerror = () => rej(t.error); }); }
+async function idbGet() { const d = await idb(); return new Promise((res, rej) => { const q = d.transaction('h').objectStore('h').get('handle'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+const FTYPES = [{ description: 'Mis libros (CSV)', accept: { 'text/csv': ['.csv'] } }];
+
+async function writeFile() {
+  if (!fileHandle) return;
+  try {
+    const w = await fileHandle.createWritable();
+    await w.write('\ufeff' + csvText()); await w.close();
+    try { localStorage.setItem('libros.lastBackup', String(Date.now())); } catch {}
+    { const hm = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }), nm = fileHandle.name; fstat(() => '💾 ' + nm + ' — ' + tr('guardado') + ' ' + hm); }
+  } catch (e) { fstat(tr('Error al guardar en el archivo: ') + e.message, true); }
+}
+/* Fusiona el archivo con los datos del navegador y reescribe el archivo con el resultado (no se pierde nada). */
+async function loadFromHandle(h) {
+  const text = await (await h.getFile()).text();
+  fileHandle = h;
+  if (text.trim()) { const r = importText(text); if (r.err) { fileHandle = null; throw new Error(r.err); } }
+  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch {}
+  render(); await writeFile(); renderBanner();
+}
+async function newFile() {
+  try { fileHandle = await showSaveFilePicker({ suggestedName: 'libros.csv', types: FTYPES }); await idbSet(fileHandle); await writeFile(); renderBanner(); }
+  catch (e) { if (e.name !== 'AbortError') fstat(e.message, true); }
+}
+async function openFile() {
+  try {
+    const [h] = await showOpenFilePicker({ types: FTYPES });
+    await h.requestPermission({ mode: 'readwrite' });
+    await loadFromHandle(h); await idbSet(h);
+  } catch (e) { if (e.name !== 'AbortError') fstat(tr('No se pudo abrir el archivo: ') + e.message, true); }
+}
+async function reconnect() {
+  try {
+    const h = await idbGet();
+    if (await h.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
+    await loadFromHandle(h); needReconnect = false; renderBanner(); dlgAlert(tr('💾 Archivo reconectado: {n}. Los cambios se guardan en él automáticamente.', { n: h.name }));
+  } catch (e) { fstat(tr('Error al reconectar: ') + e.message, true); }
+}
+async function initFile() {
+  if (!FS) { fstat(() => tr('Este navegador guarda los datos en el propio navegador. Usa «Exportar todo» de vez en cuando.')); renderBanner(); return; }
+  fstat(() => tr('Sin archivo vinculado (los datos se guardan en este navegador).'));
+  try {
+    const h = await idbGet();
+    if (h && await h.queryPermission({ mode: 'readwrite' }) === 'granted') await loadFromHandle(h);
+    else if (h) { needReconnect = true; fstat(() => tr('Archivo vinculado: {n} — pulsa «Reconectar archivo».', { n: h.name })); }
+  } catch (e) { fstat(tr('No se pudo leer el archivo vinculado: ') + e.message, true); }
+  renderBanner();
+}
+
+const isDesk = () => document.body.classList.contains('desk');
+const SORT = { books: { k: 'title', d: 1 }, readers: { k: 'name', d: 1 } };
+const cmp = (a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'es', { numeric: true });
+const th = (t, k, label) => `<th class="sortable" onclick="sortBy('${t}','${k}')">${label}${SORT[t].k === k ? (SORT[t].d > 0 ? ' ▲' : ' ▼') : ''}</th>`;
+function sortBy(t, k) { const s = SORT[t]; s.d = s.k === k ? -s.d : 1; s.k = k; PAGE[t] = 0; render(); }
+function applyView(desk) {
+  document.body.classList.toggle('desk', desk);
+  $('viewBtn').innerHTML = lbl(desk ? tr('📱 Móvil') : '🖥 PC');
+  // en un teléfono, la versión PC usa un ancho de página de 1100 px (como un ordenador)
+  $('vp').setAttribute('content', desk ? 'width=1100' : 'width=device-width, initial-scale=1, viewport-fit=cover');
+}
+const lbl = t => { const [e, ...r] = t.split(' '); return e + '<span class="lbl"> ' + r.join(' ') + '</span>'; };
+const THEMES = [['auto', '🌓 Auto'], ['light', '☀ Claro'], ['dark', '🌙 Oscuro']];
+function applyTheme(t) {
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', t);
+  $('themeBtn').innerHTML = lbl(tr(THEMES.find(x => x[0] === t)[1]));
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'auto';
+  const n = THEMES[(THEMES.findIndex(x => x[0] === cur) + 1) % THEMES.length][0];
+  applyTheme(n); try { localStorage.setItem('libros.theme', n); } catch {}
+}
+function renderBanner() {
+  const el = $('banner'); let html = '', good = false;
+  if (needReconnect) { html = `<span>${tr('💾 El archivo de datos está desconectado: los cambios no se guardan en él.')}</span><button class="btn primary" onclick="reconnect()">${tr('Reconectar')}</button>`; }
+  else if (!fileHandle && !fb && db.books.length) {
+    let t = 0; try { t = +localStorage.getItem('libros.lastBackup') || 0; } catch {}
+    const days = t ? Math.floor((Date.now() - t) / 864e5) : null;
+    if (days === null || days >= 7) html = `<span>⚠ ${days === null ? tr('Aún no has hecho ninguna copia.') : tr('Última copia hace {n} días.', { n: days })}</span><button class="btn" onclick="exportCSV()">${tr('Exportar todo')}</button>`;
+  }
+  el.innerHTML = html; el.classList.toggle('hidden', !html); el.classList.toggle('good', good);
+}
+function applyLang(l) {
+  LANG = l; document.documentElement.lang = l;
+  $('bSearch').placeholder = tr('Buscar por título o autor…');
+  $('fab').setAttribute('aria-label', fabLabel());
+  $('statsBtn').innerHTML = lbl(tr('📊 Estadísticas'));
+  $('rSearch').placeholder = tr('Buscar lector/a…');
+  if (fileMsgFn) fileMsg = fileMsgFn();
+  applyTheme(document.documentElement.getAttribute('data-theme') || 'auto');
+  applyView(document.body.classList.contains('desk'));
+  render();
+}
+function setLang(l) { applyLang(l); try { localStorage.setItem('libros.lang', l); } catch {} dataSheet(); }
+function toggleView() {
+  const d = !document.body.classList.contains('desk');
+  applyView(d); render(); try { localStorage.setItem('libros.view', d ? 'desk' : 'mobile'); } catch {}
+}
+function render() {
+  renderBooks(); renderReaders(); renderStats();
+  $('t-books').textContent = `${tr('Libros')} (${db.books.length})`;
+  $('t-readers').textContent = `${tr('Lectores/as')} (${db.readers.length})`;
+  renderBanner();
+}
+let v = null; try { v = localStorage.getItem('libros.view'); } catch {}
+applyView(v ? v === 'desk' : screen.width >= 1000);
+let savedTheme = null; try { savedTheme = localStorage.getItem('libros.theme'); } catch {}
+applyTheme(THEMES.some(x => x[0] === savedTheme) ? savedTheme : 'auto');
+let savedLang = null; try { savedLang = localStorage.getItem('libros.lang'); } catch {}
+applyLang(savedLang || (/^gl/i.test(navigator.language || '') ? 'gl' : 'es'));
+ensureReaders(); render(); initFile(); fbStart();
+</script>
+</body>
+</html>
