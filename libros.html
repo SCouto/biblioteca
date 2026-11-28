@@ -111,8 +111,13 @@
   .btn.danger.sm { height:34px; font-size:14px; border-color:transparent; }
   .tabs button { font-size:15px; padding:0 4px; }
   .pager { display:flex; align-items:center; justify-content:center; gap:12px; margin:14px 0 4px; color:var(--muted); font-size:14px; }
-  .pager .btn { min-width:44px; }
-  .pager .btn[disabled] { opacity:.4; cursor:default; }
+  .pgbtn { position:fixed; top:50%; transform:translateY(-50%); z-index:4; width:58px; height:58px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    font-size:38px; font-weight:700; line-height:1; padding:0 0 5px; cursor:pointer; box-shadow:0 3px 12px rgba(0,0,0,.28); opacity:.93; }
+  .pgbtn:active { transform:translateY(-50%) scale(.94); }
+  .pgbtn.prev { left:max(8px, calc(50% - 440px)); } .pgbtn.next { right:max(8px, calc(50% - 440px)); }
+  body.desk .pgbtn.prev { left:max(8px, calc(50% - 640px)); } body.desk .pgbtn.next { right:max(8px, calc(50% - 640px)); }
+  .pgbtn.off { visibility:hidden; }
+  @media (max-width:520px) { .pgbtn { width:52px; height:52px; font-size:34px; opacity:.82; } .pgbtn.prev { left:6px; } .pgbtn.next { right:6px; } }
   textarea { width:100%; font:inherit; font-size:16px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--ink); resize:vertical; }
   .rd { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); font-size:15px; } .rd span { flex:1; }
   .rd button { width:36px; height:36px; border-radius:50%; border:0; background:var(--late-bg); color:var(--late); font-weight:700; cursor:pointer; }
@@ -198,9 +203,9 @@ function paginate(list, key) {
   const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   PAGE[key] = Math.min(Math.max(0, PAGE[key]), pages - 1);
   const p = PAGE[key];
-  $('pg-' + key).innerHTML = pages > 1 ? `<div class="pager"><button class="btn" ${p ? '' : 'disabled'} onclick="goPage('${key}',${p - 1})" aria-label="${tr('Anterior')}">‹</button>
-    <span>${tr('Página {p} de {n}', { p: p + 1, n: pages })} · ${list.length}</span>
-    <button class="btn" ${p < pages - 1 ? '' : 'disabled'} onclick="goPage('${key}',${p + 1})" aria-label="${tr('Siguiente')}">›</button></div>` : '';
+  $('pg-' + key).innerHTML = pages > 1 ? `<div class="pager"><span>${tr('Página {p} de {n}', { p: p + 1, n: pages })} · ${list.length}</span></div>
+    <button class="pgbtn prev ${p ? '' : 'off'}" onclick="goPage('${key}',${p - 1})" aria-label="${tr('Anterior')}">‹</button>
+    <button class="pgbtn next ${p < pages - 1 ? '' : 'off'}" onclick="goPage('${key}',${p + 1})" aria-label="${tr('Siguiente')}">›</button>` : '';
   return list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE);
 }
 function goPage(key, n) { PAGE[key] = n; render(); window.scrollTo(0, 0); }

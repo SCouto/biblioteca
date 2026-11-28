@@ -48,7 +48,6 @@ No test suite. Verify with Playwright (preinstalled; `require('playwright')`) ag
 - Commit on the session branch and push; do not open PRs or subscribe to PR activity unless asked.
 
 ## Ideas not done yet
-- Edit an existing book/loan (only add/delete today).
 - Spreadsheet-like inline editing; choose visible columns; extra fields (category, ISBN as its own column).
 - "Due soon" highlight, loan history per book/person, printable list.
 - Table view is desktop only; phone always shows cards.
@@ -59,3 +58,7 @@ Variante personal de `library.html` (mismas reglas: un solo fichero, sin depende
 ### Estadísticas (ambas páginas) y Firebase (`libros.html`)
 - Sección 📊 con selector de vista **Rosca / Barras / Tabla** (`STATVIEW`, `setStatView`, `statCard`; se recuerda en `localStorage` `<página>.statview`). Los datos de cada tarjeta son los mismos (top 5 + «Otros»).
 - `libros.html` puede sincronizar con **Firestore sin login** (⚙ Datos → Sincronización): un documento `libros/<código secreto>` = `{ data: JSON de db, rev }`; reglas recomendadas `allow get, create, update: if true` (sin `list`), así la seguridad es el código largo, que solo está en los dispositivos del usuario (la página no se publica). SDK `firebase-*-compat` cargado por CDN solo si hay configuración; sin red la app sigue en `localStorage`. Cambios en dos sitios se **unen** (`fbMerge`, un borrado puede reaparecer). Probado solo contra un mock de Firestore, no contra un proyecto real.
+
+- Loans are editable (`editLoan`: borrower, dates, actual return; the book itself is not changeable). Click a row (PC) or the title (phone).
+- No demo-data button on purpose. To try the app/stats, import `ejemplo.csv` (51 books, 15 readers with course, 150 loans; dates are absolute, generated 2026-11-28) from **⚙ Datos → Importar CSV**.
+- Estadísticas de `library.html`: buscador de lector/a o libro (`statSearchInput`, `statPick`, `statDetail`) que muestra su ficha (KPIs, historial de préstamos editable al pulsar, gráficos propios). Los ejemplares del mismo título+autor se agrupan.

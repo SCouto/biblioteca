@@ -111,8 +111,13 @@
   .btn.danger.sm { height:34px; font-size:14px; border-color:transparent; }
   .tabs button { font-size:15px; padding:0 4px; }
   .pager { display:flex; align-items:center; justify-content:center; gap:12px; margin:14px 0 4px; color:var(--muted); font-size:14px; }
-  .pager .btn { min-width:44px; }
-  .pager .btn[disabled] { opacity:.4; cursor:default; }
+  .pgbtn { position:fixed; top:50%; transform:translateY(-50%); z-index:4; width:58px; height:58px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink);
+    font-size:38px; font-weight:700; line-height:1; padding:0 0 5px; cursor:pointer; box-shadow:0 3px 12px rgba(0,0,0,.28); opacity:.93; }
+  .pgbtn:active { transform:translateY(-50%) scale(.94); }
+  .pgbtn.prev { left:max(8px, calc(50% - 440px)); } .pgbtn.next { right:max(8px, calc(50% - 440px)); }
+  body.desk .pgbtn.prev { left:max(8px, calc(50% - 640px)); } body.desk .pgbtn.next { right:max(8px, calc(50% - 640px)); }
+  .pgbtn.off { visibility:hidden; }
+  @media (max-width:520px) { .pgbtn { width:52px; height:52px; font-size:34px; opacity:.82; } .pgbtn.prev { left:6px; } .pgbtn.next { right:6px; } }
   .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:12px; }
   .kpi { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 14px; }
   .kpi b { display:block; font-size:26px; line-height:1.1; } .kpi span { font-size:13px; color:var(--muted); }
@@ -130,6 +135,8 @@
   .bars { display:grid; gap:10px; } .bhead { display:flex; gap:8px; justify-content:space-between; font-size:14px; } .bhead .lg { min-width:0; overflow-wrap:anywhere; line-height:1.25; }
   .bhead small { color:var(--muted); font-weight:400; } .bt { height:12px; border-radius:6px; background:var(--chip); overflow:hidden; margin-top:4px; } .bf { height:100%; border-radius:6px; }
   .stbl td { padding:7px 6px; } .stbl i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:8px; }
+  .rd2 { display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); } .rd2:last-child { border-bottom:0; }
+  .fhead { display:flex; align-items:flex-start; gap:8px; } .fhead .grow { min-width:0; } .fhead h3 { font-size:20px; overflow-wrap:anywhere; }
   #statsBtn.on { background:var(--accent); color:var(--on-accent); border-color:transparent; }
   .hidden { display:none !important; }
 </style>
@@ -159,7 +166,12 @@
     <input class="search" id="rSearch" type="search" placeholder="Buscar lector/a o curso…" oninput="PAGE.readers=0;renderReaders()">
     <div id="readerList"></div><div id="pg-readers"></div>
   </section>
-  <section id="stats" class="hidden"></section>
+  <section id="stats" class="hidden">
+    <div id="statToggle"></div>
+    <input class="search" id="statSearch" type="search" placeholder="Buscar lector/a o libro…" oninput="statSearchInput()" autocomplete="off">
+    <div id="statRes" class="pick hidden"></div>
+    <div id="statBody"></div>
+  </section>
 </main>
 
 <button class="fab" id="fab" onclick="addAction()" aria-label="Añadir">+</button>
@@ -205,9 +217,9 @@ function paginate(list, key) {
   const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   PAGE[key] = Math.min(Math.max(0, PAGE[key]), pages - 1);
   const p = PAGE[key];
-  $('pg-' + key).innerHTML = pages > 1 ? `<div class="pager"><button class="btn" ${p ? '' : 'disabled'} onclick="goPage('${key}',${p - 1})" aria-label="${tr('Anterior')}">‹</button>
-    <span>${tr('Página {p} de {n}', { p: p + 1, n: pages })} · ${list.length}</span>
-    <button class="btn" ${p < pages - 1 ? '' : 'disabled'} onclick="goPage('${key}',${p + 1})" aria-label="${tr('Siguiente')}">›</button></div>` : '';
+  $('pg-' + key).innerHTML = pages > 1 ? `<div class="pager"><span>${tr('Página {p} de {n}', { p: p + 1, n: pages })} · ${list.length}</span></div>
+    <button class="pgbtn prev ${p ? '' : 'off'}" onclick="goPage('${key}',${p - 1})" aria-label="${tr('Anterior')}">‹</button>
+    <button class="pgbtn next ${p < pages - 1 ? '' : 'off'}" onclick="goPage('${key}',${p + 1})" aria-label="${tr('Siguiente')}">›</button>` : '';
   return list.slice(p * PAGE_SIZE, (p + 1) * PAGE_SIZE);
 }
 function goPage(key, n) { PAGE[key] = n; render(); window.scrollTo(0, 0); }
@@ -301,6 +313,25 @@ const GL = {
   "Barras": "Barras",
   "Tabla": "Táboa",
   "Total": "Total",
+  "Editar préstamo": "Editar préstamo",
+  "vacío = sin devolver": "baleiro = sen devolver",
+  "Borrar este préstamo…": "Borrar este préstamo…",
+  "La devolución real no puede ser anterior al préstamo.": "A devolución real non pode ser anterior ao préstamo.",
+  "Este libro ya tiene otro préstamo sin devolver.": "Este libro xa ten outro préstamo sen devolver.",
+  "Buscar lector/a o libro…": "Buscar lector/a ou libro…",
+  "Nada coincide.": "Nada coincide.",
+  "Historial": "Historial",
+  "Sin préstamos todavía.": "Sen préstamos aínda.",
+  "Libros distintos": "Libros distintos",
+  "Colecciones que más lee": "Coleccións que máis le",
+  "Autores/as que más lee": "Autores/as que máis le",
+  "{n} ejemplares": "{n} exemplares",
+  "Veces prestado": "Veces prestado",
+  "Lectores/as distintos": "Lectores/as distintos",
+  "Lectores/as que lo han pedido": "Lectores/as que o pediron",
+  "Cursos que lo han pedido": "Cursos que o pediron",
+  "Ver historial": "Ver historial",
+  "Ver estadísticas": "Ver estatísticas",
   "Anterior": "Anterior",
   "Datos opcionales": "Datos opcionais",
   "Libro nuevo": "Libro novo",
@@ -355,6 +386,7 @@ function bookSheet(id) {
       <div class="f"><label>${tr('Colección')} <small>(${tr('opcional')})</small></label><input id="bColl" autocomplete="off" value="${esc(b?.collection || '')}"></div>
       <div class="f"><label>${tr('ISBN / Notas')}</label><input id="bNote" autocomplete="off" value="${esc(b?.note || '')}"></div>
       <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      ${b ? `<div class="btns"><button type="button" class="btn sm" onclick="historySheet('book','${b.id}')">📋 ${tr('Ver historial')}</button></div>` : ''}
       ${b ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delBook('${b.id}')">${tr('Borrar este libro…')}</button></div>` : ''}
     </form>`);
   $('bf').onsubmit = e => {
@@ -363,7 +395,7 @@ function bookSheet(id) {
     if (b) Object.assign(b, d); else db.books.push({ id: uid(), ...d });
     save(); closeSheet(); render();
   };
-  setTimeout(() => $('bTitle').focus(), 50);
+  setTimeout(() => $('bTitle')?.focus(), 50);
 }
 async function delBook(id) {
   if (activeLoan(id)) return dlgAlert(tr('Este libro está prestado ahora mismo. Márcalo como devuelto antes de borrarlo.'));
@@ -391,7 +423,7 @@ function renderBooks() {
         return `<tr class="click" onclick="bookSheet('${b.id}')" title="${tr('Editar')}"><td><b>${esc(b.title)}</b>${dup(b)}</td><td>${esc(b.author)}</td><td>${esc(b.collection)}</td><td>${esc(b.note)}</td>
           <td><span class="badge ${o ? 'b-' + s : 'b-avail'}">${o ? LABEL[s] : tr('Disponible')}</span></td>
           <td>${o ? esc(o.who) : ''}</td><td>${o ? fmt(o.due) : ''}</td>
-          <td class="r" onclick="event.stopPropagation()">${o ? `<button class="btn sm" onclick="returnSheet('${o.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn sm primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`}</td></tr>`; }).join('')}
+          <td class="r" onclick="event.stopPropagation()">${o ? `<button class="btn sm" onclick="returnSheet('${o.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn sm primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`} <button class="btn sm" onclick="historySheet('book','${b.id}')" title="${tr('Ver historial')}">📋</button></td></tr>`; }).join('')}
       </tbody></table></div>`
       : `<div class="empty">${db.books.length ? tr('Ningún libro coincide.') : tr('Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`;
     return;
@@ -404,7 +436,8 @@ function renderBooks() {
         <div class="sub">${esc([b.author, b.collection, b.note].filter(Boolean).join(' · ')) || '&nbsp;'}</div>
         ${out ? `<div class="sub">${tr('con {who} · devolver el {date}', { who: esc(out.who), date: fmt(out.due) })}</div>` : ''}</div>${badge}</div>
       <div class="acts">
-        ${out ? `<button class="btn" onclick="returnSheet('${out.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`}</div>
+        ${out ? `<button class="btn" onclick="returnSheet('${out.id}')">${tr('Marcar devuelto')}</button>` : `<button class="btn primary" onclick="loanSheet('${b.id}')">${tr('Prestar')}</button>`}
+        <button class="btn" onclick="historySheet('book','${b.id}')">📋 ${tr('Historial')}</button></div>
     </div>`;
   }).join('') : `<div class="empty">${db.books.length ? tr('Ningún libro coincide.') : tr('Aún no hay libros.<br>Pulsa <b>+</b> para añadir el primero.')}</div>`;
 }
@@ -512,10 +545,36 @@ function returnSheet(id) {
       <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Confirmar')}</button></div></form>`);
   $('rf').onsubmit = e => { e.preventDefault(); l.returned = $('rDate').value; save(); closeSheet(); render(); };
 }
+function editLoan(id) {   // el libro no se cambia (para otro libro: borrar y crear de nuevo)
+  const l = db.loans.find(x => x.id === id); if (!l) return;
+  const b = bookById(l.bookId), people = [...new Set([...db.readers.map(r => r.name), ...db.loans.map(x => x.who)].filter(Boolean))].sort((a, c) => a.localeCompare(c, 'es'));
+  openSheet(`<h2>${tr('Editar préstamo')}</h2>
+    <p class="sub" style="margin-top:-8px"><b>${esc(b?.title || tr('(libro borrado)'))}</b></p>
+    <form id="ef">
+      <div class="f"><label>${tr('Prestado a')} *</label><input id="eWho" required list="epeople" autocomplete="off" value="${esc(l.who)}"><datalist id="epeople">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>
+      <div class="two">
+        <div class="f"><label>${tr('Fecha de préstamo')}</label><input id="eDate" type="date" required value="${esc(l.date)}"></div>
+        <div class="f"><label>${tr('Devolución prevista')}</label><input id="eDue" type="date" required value="${esc(l.due)}"></div>
+      </div>
+      <div class="f"><label>${tr('Fecha real de devolución')} <small>(${tr('vacío = sin devolver')})</small></label><input id="eRet" type="date" value="${esc(l.returned || '')}"></div>
+      <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      <div class="btns"><button type="button" class="btn danger sm" onclick="delLoan('${l.id}')">${tr('Borrar este préstamo…')}</button></div>
+    </form>`);
+  $('ef').onsubmit = e => {
+    e.preventDefault();
+    const who = $('eWho').value.trim(), date = $('eDate').value, due = $('eDue').value, ret = $('eRet').value || null;
+    if (due < date) return dlgAlert(tr('La devolución prevista no puede ser anterior al préstamo.'));
+    if (ret && ret < date) return dlgAlert(tr('La devolución real no puede ser anterior al préstamo.'));
+    if (!ret && db.loans.some(x => x.id !== l.id && x.bookId === l.bookId && !x.returned)) return dlgAlert(tr('Este libro ya tiene otro préstamo sin devolver.'));
+    ensureReader(who);
+    Object.assign(l, { who, date, due, returned: ret });
+    save(); closeSheet(); render();
+  };
+}
 function reopen(id) { db.loans.find(l => l.id === id).returned = null; save(); render(); }
 async function delLoan(id) {
   if (!await dlgConfirm(tr('¿Borrar este préstamo?'), tr('Borrar'))) return;
-  db.loans = db.loans.filter(l => l.id !== id); save(); render();
+  db.loans = db.loans.filter(l => l.id !== id); save(); closeSheet(); render();
 }
 const courseSub = n => { const c = readerByName(n)?.course; return c ? `<div class="sub">${esc(c)}</div>` : ''; };
 function renderLoans() {
@@ -537,9 +596,9 @@ function renderLoans() {
       ${rows.map(l => { const s = status(l), b = bookById(l.bookId); let n = '';
         if (s === 'late') { const d = daysBetween(l.due, today()); n = `<div class="sub" style="color:var(--late)">${tr('{n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
         if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); n = `<div class="sub">${tr('con {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
-        return `<tr><td><b>${esc(b?.title || tr('(libro borrado)'))}</b></td><td>${esc(l.who)}${courseSub(l.who)}</td><td>${fmt(l.date)}</td><td>${fmt(l.due)}</td><td>${fmt(l.returned)}</td>
+        return `<tr class="click" onclick="editLoan('${l.id}')" title="${tr('Editar')}"><td><b>${esc(b?.title || tr('(libro borrado)'))}</b></td><td>${esc(l.who)}${courseSub(l.who)}</td><td>${fmt(l.date)}</td><td>${fmt(l.due)}</td><td>${fmt(l.returned)}</td>
           <td><span class="badge b-${s}">${LABEL[s]}</span>${n}</td>
-          <td class="r">${l.returned ? `<button class="btn sm" onclick="reopen('${l.id}')">${tr('Reabrir')}</button>` : `<button class="btn sm primary" onclick="returnSheet('${l.id}')">${tr('Marcar devuelto')}</button>`}
+          <td class="r" onclick="event.stopPropagation()">${l.returned ? `<button class="btn sm" onclick="reopen('${l.id}')">${tr('Reabrir')}</button>` : `<button class="btn sm primary" onclick="returnSheet('${l.id}')">${tr('Marcar devuelto')}</button>`}
             <button class="btn sm danger" onclick="delLoan('${l.id}')">${tr('Borrar')}</button></td></tr>`; }).join('')}
       </tbody></table></div>`
       : `<div class="empty">${db.loans.length ? tr('Ningún préstamo coincide.') : tr('Aún no hay préstamos.<br>Pulsa <b>+</b> para registrar el primero.')}</div>`;
@@ -551,7 +610,7 @@ function renderLoans() {
     if (s === 'late') { const d = daysBetween(l.due, today()); note = `<div class="warn">${tr('⚠ {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
     if (l.returned && l.returned > l.due) { const d = daysBetween(l.due, l.returned); note = `<div class="sub">${tr('Devuelto con {n} {u} de retraso', { n: d, u: d === 1 ? tr('día') : tr('días') })}</div>`; }
     return `<div class="item">
-      <div class="row"><div class="grow"><div class="t">${esc(b?.title || tr('(libro borrado)'))}</div><div class="sub">${tr('Prestado a')} ${esc(l.who)}${readerByName(l.who)?.course ? ' · ' + esc(readerByName(l.who).course) : ''}</div></div>
+      <div class="row"><div class="grow click" onclick="editLoan('${l.id}')"><div class="t">${esc(b?.title || tr('(libro borrado)'))}</div><div class="sub">${tr('Prestado a')} ${esc(l.who)}${readerByName(l.who)?.course ? ' · ' + esc(readerByName(l.who).course) : ''}</div></div>
         <span class="badge b-${s}">${LABEL[s]}</span></div>
       <div class="dates"><div><small>${tr('Préstamo')}</small>${fmt(l.date)}</div><div><small>${tr('Previsto')}</small>${fmt(l.due)}</div><div><small>${tr('Devuelto')}</small>${fmt(l.returned)}</div></div>
       ${note}
@@ -571,6 +630,7 @@ function readerSheet(id) {
       <div class="f"><label>${tr('Nombre')} *</label><input id="rName" required autocomplete="off" value="${esc(r?.name || '')}"></div>
       <div class="f"><label>${tr('Curso')} <small>(${tr('opcional')})</small></label><input id="rCourse" autocomplete="off" value="${esc(r?.course || '')}"></div>
       <div class="btns"><button type="button" class="btn" onclick="closeSheet()">${tr('Cancelar')}</button><button class="btn primary">${tr('Guardar')}</button></div>
+      ${r ? `<div class="btns"><button type="button" class="btn sm" onclick="historySheet('reader','${r.id}')">📋 ${tr('Ver historial')}</button></div>` : ''}
       ${r ? `<div class="btns"><button type="button" class="btn danger sm" onclick="delReader('${r.id}')">${tr('Borrar este lector/a…')}</button></div>` : ''}
     </form>`);
   $('rdf').onsubmit = e => {
@@ -581,7 +641,7 @@ function readerSheet(id) {
     else db.readers.push({ id: uid(), name, course });
     save(); closeSheet(); render();
   };
-  setTimeout(() => $('rName').focus(), 50);
+  setTimeout(() => $('rName')?.focus(), 50);
 }
 async function delReader(id) {
   const r = db.readers.find(x => x.id === id); if (!r) return;
@@ -600,15 +660,16 @@ function renderReaders() {
     const g = val[SORT.readers.k], num = SORT.readers.k === 'open' || SORT.readers.k === 'total';
     const rows = paginate([...list].sort((a, b) => SORT.readers.d * (num ? g(a) - g(b) : cmp(g(a), g(b)))), 'readers');
     $('readerList').innerHTML = `<div class="tw"><table class="tbl"><thead><tr>
-      ${th('readers','name',tr('Nombre'))}${th('readers','course',tr('Curso'))}${th('readers','open',tr('Sin devolver'))}${th('readers','total',tr('Préstamos'))}</tr></thead><tbody>
-      ${rows.map(r => { const st = readerStats(r); return `<tr class="click" onclick="readerSheet('${r.id}')" title="${tr('Editar')}"><td><b>${esc(r.name)}</b></td><td>${esc(r.course)}</td><td>${st.open || ''}</td><td>${st.total}</td></tr>`; }).join('')}
+      ${th('readers','name',tr('Nombre'))}${th('readers','course',tr('Curso'))}${th('readers','open',tr('Sin devolver'))}${th('readers','total',tr('Préstamos'))}<th></th></tr></thead><tbody>
+      ${rows.map(r => { const st = readerStats(r); return `<tr class="click" onclick="readerSheet('${r.id}')" title="${tr('Editar')}"><td><b>${esc(r.name)}</b></td><td>${esc(r.course)}</td><td>${st.open || ''}</td><td>${st.total}</td><td class="r" onclick="event.stopPropagation()"><button class="btn sm" onclick="historySheet('reader','${r.id}')" title="${tr('Ver historial')}">📋</button></td></tr>`; }).join('')}
       </tbody></table></div>`;
     return;
   }
   $('readerList').innerHTML = paginate([...list].sort((a, b) => cmp(a.name, b.name)), 'readers').map(r => { const st = readerStats(r);
     return `<div class="item click" onclick="readerSheet('${r.id}')"><div class="row"><div class="grow"><div class="t">${esc(r.name)}</div>
       <div class="sub">${esc(r.course) || '&nbsp;'}</div></div>${st.open ? `<span class="badge b-loaned">${st.open} ${tr('sin devolver')}</span>` : ''}</div>
-      <div class="sub">${tr('Préstamos')}: ${st.total}</div></div>`; }).join('');
+      <div class="sub">${tr('Préstamos')}: ${st.total}</div>
+      <div class="acts" onclick="event.stopPropagation()"><button class="btn" onclick="historySheet('reader','${r.id}')">📋 ${tr('Historial')}</button></div></div>`; }).join('');
 }
 
 /* ---------- Estadísticas ---------- */
@@ -643,8 +704,81 @@ function statCard(title, items, lead) {
   }
   return `<div class="scard"><h3>${title}</h3><div class="lead">${lead || ''}</div>${body}</div>`;
 }
+let statSel = null;   // { t: 'reader' | 'book', id }
+function statSearchInput() {
+  const q = norm($('statSearch').value), box = $('statRes');
+  if (!q) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+  const tk = q.split(/\s+/), has = h => tk.every(w => h.includes(w)), seen = new Set();
+  const rs = db.readers.filter(r => has(norm(r.name + ' ' + (r.course || '')))).sort((a, b) => a.name.localeCompare(b.name, 'es')).slice(0, 6);
+  const bs = db.books.filter(b => has(norm(b.title + ' ' + b.author + ' ' + (b.collection || '')))).sort((a, b) => a.title.localeCompare(b.title))
+    .filter(b => !seen.has(dupKey(b)) && seen.add(dupKey(b))).slice(0, 6);
+  box.classList.remove('hidden');
+  box.innerHTML = rs.length + bs.length
+    ? rs.map(r => `<div class="po" data-t="reader" data-id="${r.id}">👤 <b>${esc(r.name)}</b>${r.course ? ` <span class="sub" style="display:inline">· ${esc(r.course)}</span>` : ''}</div>`).join('')
+      + bs.map(b => `<div class="po" data-t="book" data-id="${b.id}">📖 <b>${esc(b.title)}</b>${b.author ? ` <span class="sub" style="display:inline">· ${esc(b.author)}</span>` : ''}</div>`).join('')
+    : `<div class="sub" style="padding:12px">${tr('Nada coincide.')}</div>`;
+}
+$('statRes').onclick = e => { const o = e.target.closest('.po'); if (o && o.dataset.id) statPick(o.dataset.t, o.dataset.id); };
+function statPick(t, id) { statSel = { t, id }; $('statSearch').value = ''; statSearchInput(); renderStats(); window.scrollTo(0, 0); }
+function statClear() { statSel = null; renderStats(); }
+const dayNote = l => { const s = status(l); return s === 'late' ? ` · ${tr('{n} {u} de retraso', { n: daysBetween(l.due, today()), u: daysBetween(l.due, today()) === 1 ? tr('día') : tr('días') })}` : ''; };
+function loanHistory(ls, byWho) {   // byWho: filas de un libro (muestra quién); si no, de un lector/a (muestra el libro)
+  if (!ls.length) return `<div class="scard" style="margin-bottom:12px"><h3>${tr('Historial')}</h3><div class="sub">${tr('Sin préstamos todavía.')}</div></div>`;
+  return `<div class="scard" style="margin-bottom:12px"><h3>${tr('Historial')} (${ls.length})</h3>${ls.map(l => histRow(l, byWho)).join('')}</div>`;
+}
+function histRow(l, byWho) {
+  const s = status(l), b = bookById(l.bookId), c = readerByName(l.who)?.course;
+  return `<div class="rd2 click" onclick="editLoan('${l.id}')" title="${tr('Editar')}"><div class="grow"><div class="t">${esc(byWho ? l.who + (c ? ' · ' + c : '') : (b?.title || tr('(libro borrado)')))}</div>
+    <div class="sub">${fmt(l.date)} → ${fmt(l.due)}${l.returned ? ' · ' + tr('Devuelto') + ' ' + fmt(l.returned) : ''}${dayNote(l)}</div></div><span class="badge b-${s}">${LABEL[s]}</span></div>`;
+}
+function historySheet(t, id) {   // «Ver historial» desde un libro o un lector/a
+  let title, sub, ls, byWho;
+  if (t === 'reader') {
+    const r = db.readers.find(x => x.id === id); if (!r) return;
+    ls = db.loans.filter(l => norm(l.who) === norm(r.name)); title = r.name; sub = r.course; byWho = false;
+  } else {
+    const b = bookById(id); if (!b) return;
+    const ids = new Set(db.books.filter(x => dupKey(x) === dupKey(b)).map(x => x.id));   // varios ejemplares cuentan juntos
+    ls = db.loans.filter(l => ids.has(l.bookId)); title = b.title; sub = b.author; byWho = true;
+  }
+  ls.sort((a, c) => c.date.localeCompare(a.date));
+  openSheet(`<h2>${tr('Historial')} (${ls.length})</h2><p class="sub" style="margin-top:-8px"><b>${esc(title)}</b>${sub ? ' · ' + esc(sub) : ''}</p>
+    ${ls.length ? ls.map(l => histRow(l, byWho)).join('') : `<p class="sub">${tr('Sin préstamos todavía.')}</p>`}
+    <div class="btns"><button class="btn" onclick="closeSheet()">${tr('Cerrar')}</button><button class="btn primary" onclick="closeSheet();show('stats');statPick('${t}','${id}')">📊 ${tr('Ver estadísticas')}</button></div>`);
+}
+function kpiRow(items) { return `<div class="kpis">${items.map(([n, l]) => `<div class="kpi"><b>${n}</b><span>${l}</span></div>`).join('')}</div>`; }
+const avgDays = ls => { const d = ls.filter(l => l.returned); return d.length ? Math.round(d.reduce((t, l) => t + daysBetween(l.date, l.returned), 0) / d.length) : '—'; };
+function statDetail() {
+  const add = (m, k, label) => { if (!k) return; (m[k] = m[k] || { label, n: 0 }).n++; };
+  let head, kp, cards, hist;
+  if (statSel.t === 'reader') {
+    const r = db.readers.find(x => x.id === statSel.id); if (!r) { statSel = null; return null; }
+    const ls = db.loans.filter(l => norm(l.who) === norm(r.name)).sort((a, b) => b.date.localeCompare(a.date));
+    const coll = {}, auth = {}, books = new Set();
+    for (const l of ls) { const b = bookById(l.bookId); if (!b) continue; books.add(dupKey(b)); add(coll, norm(b.collection || ''), b.collection); add(auth, norm(b.author || ''), b.author); }
+    head = { title: '👤 ' + esc(r.name), sub: esc(r.course || tr('Sin curso')), edit: `readerSheet('${r.id}')` };
+    kp = kpiRow([[ls.length, tr('Préstamos')], [ls.filter(l => !l.returned).length, tr('Sin devolver')], [books.size, tr('Libros distintos')], [avgDays(ls), tr('Días de préstamo (media)')]]);
+    cards = `<div class="stats">${statCard(tr('Colecciones que más lee'), topN(coll), '')}${statCard(tr('Autores/as que más lee'), topN(auth), '')}</div>`;
+    hist = loanHistory(ls, false);
+  } else {
+    const b = bookById(statSel.id); if (!b) { statSel = null; return null; }
+    const copies = db.books.filter(x => dupKey(x) === dupKey(b)), ids = new Set(copies.map(x => x.id));
+    const ls = db.loans.filter(l => ids.has(l.bookId)).sort((a, c) => c.date.localeCompare(a.date));
+    const out = ls.filter(l => !l.returned), who = {}, course = {};
+    for (const l of ls) { add(who, norm(l.who), l.who); add(course, norm(readerByName(l.who)?.course || '~'), readerByName(l.who)?.course || tr('Sin curso')); }
+    head = { title: '📖 ' + esc(b.title), sub: esc([b.author, b.collection, b.note].filter(Boolean).join(' · ')) + (copies.length > 1 ? ` · ${tr('{n} ejemplares', { n: copies.length })}` : ''), edit: `bookSheet('${b.id}')`,
+      state: out.length ? `<span class="badge b-${status(out[0])}">${LABEL[status(out[0])]}</span> ${tr('con {who} · devolver el {date}', { who: esc(out[0].who), date: fmt(out[0].due) })}` : `<span class="badge b-avail">${tr('Disponible')}</span>` };
+    kp = kpiRow([[ls.length, tr('Veces prestado')], [Object.keys(who).length, tr('Lectores/as distintos')], [out.length, tr('Sin devolver')], [avgDays(ls), tr('Días de préstamo (media)')]]);
+    cards = `<div class="stats">${statCard(tr('Lectores/as que lo han pedido'), topN(who), '')}${statCard(tr('Cursos que lo han pedido'), topN(course), '')}</div>`;
+    hist = loanHistory(ls, true);
+  }
+  return `<div class="scard" style="margin-bottom:12px"><div class="fhead"><div class="grow"><h3>${head.title}</h3><div class="sub" style="margin:2px 0 0">${head.sub}</div>${head.state ? `<div class="sub" style="margin-top:6px">${head.state}</div>` : ''}</div>
+      <button class="btn sm" onclick="${head.edit}">${tr('Editar')}</button><button class="btn sm" onclick="statClear()">✕ ${tr('Cerrar')}</button></div></div>${kp}${hist}${cards}`;
+}
 function renderStats() {
   if (tab !== 'stats') return;
+  $('statToggle').innerHTML = statToggle();
+  if (statSel) { const d = statDetail(); if (d) { $('statBody').innerHTML = d; return; } }
   const loans = db.loans, add = (m, k, label) => { if (!k) return; (m[k] = m[k] || { label, n: 0 }).n++; };
   const byBook = {}, byReader = {}, byCourse = {}, byColl = {};
   for (const l of loans) {
@@ -660,7 +794,7 @@ function renderStats() {
   const state = [{ label: tr('Disponibles'), n: db.books.filter(b => !activeLoan(b.id)).length, color: 'var(--ok)' },
     { label: tr('Prestado'), n: open.length - late, color: 'var(--loan)' }, { label: tr('Retrasado'), n: late, color: 'var(--late)' }].filter(x => x.n);
   const done = loans.filter(l => l.returned), avg = done.length ? Math.round(done.reduce((t, l) => t + daysBetween(l.date, l.returned), 0) / done.length) : null;
-  $('stats').innerHTML = statToggle() + `<div class="kpis">
+  $('statBody').innerHTML = `<div class="kpis">
       <div class="kpi"><b>${db.books.length}</b><span>${tr('Libros')}</span></div>
       <div class="kpi"><b>${loans.length}</b><span>${tr('Préstamos')}</span></div>
       <div class="kpi"><b>${open.length}</b><span>${tr('Sin devolver')}</span></div>
@@ -899,6 +1033,7 @@ function applyLang(l) {
   $('lSearch').placeholder = tr('Buscar por libro, autor o persona…');
   $('fab').setAttribute('aria-label', fabLabel());
   $('statsBtn').innerHTML = lbl(tr('📊 Estadísticas'));
+  $('statSearch').placeholder = tr('Buscar lector/a o libro…');
   $('rSearch').placeholder = tr('Buscar lector/a o curso…');
   if (fileMsgFn) fileMsg = fileMsgFn();
   applyTheme(document.documentElement.getAttribute('data-theme') || 'auto');
